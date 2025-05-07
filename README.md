@@ -6,7 +6,7 @@ A modular Rust library providing a reusable trait for paginating any serializabl
 
 ```
 root/
-├── paginator/            # Main trait and implementation logic
+├── paginator-rs/         # Main trait and implementation logic
 │   ├── src/lib.rs
 │   └── Cargo.toml
 ├── paginator-utils/      # Shared types and helper functions (e.g. response format)
