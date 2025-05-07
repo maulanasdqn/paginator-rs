@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["paginator-utils", "paginator-examples", "paginator-rs"]
+members = ["paginator-utils", "paginator-rs"]
 
 [workspace.dependencies]
-paginator-utils = { version = "0.1.1" }
-paginator-rs = { version = "0.1.1" }
+paginator-utils = "0.1.1"
+paginator-rs = "0.1.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
