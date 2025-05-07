@@ -16,18 +16,16 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "paginator-rs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
- "paginator-utils 0.1.1",
+ "paginator-utils 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
 ]
 
 [[package]]
 name = "paginator-utils"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df03a3c442eddb771302e4cd093764da7843af092afe56df720386c3f68318cb"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -36,6 +34,8 @@ dependencies = [
 [[package]]
 name = "paginator-utils"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b70c6cd2912a44c62c74c53776a3664f618d1ff45927bf40ae8480b73ad7ae66"
 dependencies = [
  "serde",
  "serde_json",
