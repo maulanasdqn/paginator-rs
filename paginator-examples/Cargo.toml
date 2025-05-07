@@ -1,0 +1,9 @@
+[package]
+name = "paginator-examples"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+paginator = { version = "0.1.0", path = "../paginator" }
+serde.workspace = true
+serde_json.workspace = true
