@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["paginator-utils", "paginator-rs", "paginator-examples"]
+members = ["paginator-utils", "paginator-rs"]
 
 [workspace.dependencies]
 paginator-utils = "0.1.1"
