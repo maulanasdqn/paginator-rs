@@ -33,7 +33,7 @@ To use in your project, add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-paginator = { git = "https://github.com/maulanasdqn/paginator-rs" }
+paginator-rs = "0.1.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ```
@@ -43,7 +43,7 @@ serde_json = "1"
 ## 🚀 Usage Example
 
 ```rust
-use paginator::{PaginatorResponse, PaginatorResponseMeta, PaginatorTrait};
+use paginator_rs::{PaginatorResponse, PaginatorResponseMeta, PaginatorTrait};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
