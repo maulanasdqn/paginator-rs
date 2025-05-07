@@ -1,4 +1,4 @@
-use paginator::{PaginatorResponse, PaginatorResponseMeta, PaginatorTrait};
+use paginator_rs::{PaginatorResponse, PaginatorResponseMeta, PaginatorTrait};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

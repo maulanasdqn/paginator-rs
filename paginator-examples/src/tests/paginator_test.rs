@@ -1,7 +1,7 @@
 #[cfg(test)]
 pub mod tests {
     use crate::users_repository::UsersData;
-    use paginator::PaginatorTrait;
+    use paginator_rs::PaginatorTrait;
     use serde_json::json;
 
     #[test]

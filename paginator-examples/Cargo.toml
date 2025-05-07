@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-paginator = { version = "0.1.0", path = "../paginator" }
+paginator-rs = { version = "0.1.0", path = "../paginator-rs" }
+paginator-utils.workspace = true
 serde.workspace = true
 serde_json.workspace = true
