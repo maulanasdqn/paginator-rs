@@ -8,6 +8,6 @@ repository = "https://github.com/maulanasdqn/paginator-rs"
 description = "A modular Rust library providing a reusable trait for paginating any serializable collection."
 
 [dependencies]
-paginator-utils = { version = "0.1.0", path = "../paginator-utils" }
+paginator-utils.workspace = true
 serde.workspace = true
 serde_json.workspace = true
