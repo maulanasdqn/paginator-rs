@@ -1,6 +1,6 @@
 [package]
 name = "paginator-utils"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Maulana Sodiqin <your@email.com>"]
 description = "Shared pagination response structures"
