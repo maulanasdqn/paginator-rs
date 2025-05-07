@@ -1,5 +1,5 @@
-use paginator::PaginatorTrait;
 use paginator_examples::users_repository::UsersData;
+use paginator_rs::PaginatorTrait;
 
 fn main() {
     let users = vec![
