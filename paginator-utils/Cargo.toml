@@ -1,12 +1,15 @@
 [package]
 name = "paginator-utils"
 version = "0.1.0"
-edition = "2024"
-authors = ["maulanasdqn <maulanasdqn@gmail.com>"]
+edition = "2021"
+authors = ["Maulana Sodiqin <your@email.com>"]
+description = "Shared pagination response structures"
 license = "MIT"
-repository = "https://github.com/maulanasdqn/paginator-rs"
-description = "A modular Rust library providing a reusable trait for paginating any serializable collection."
+repository = "https://github.com/your-username/paginator-rs"
+readme = "../README.md"
+keywords = ["pagination", "rust", "serde"]
+categories = ["data-structures"]
 
 [dependencies]
-serde.workspace = true
-serde_json.workspace = true
+serde = { workspace = true }
+serde_json = { workspace = true }
