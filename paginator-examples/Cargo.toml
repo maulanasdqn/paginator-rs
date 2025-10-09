@@ -1,7 +1,11 @@
 [package]
 name = "paginator-examples"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+
+[[bin]]
+name = "example"
+path = "src/bin/example.rs"
 
 [dependencies]
 paginator-rs.workspace = true

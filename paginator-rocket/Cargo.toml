@@ -1,0 +1,21 @@
+[package]
+name = "paginator-rocket"
+version = "0.1.1"
+edition = "2021"
+authors = ["Maulana Sodiqin <sodiqincahyana1@gmail.com>"]
+description = "Rocket web framework integration for paginator-rs"
+license = "MIT"
+repository = "https://github.com/maulanasdqn/paginator-rs"
+readme = "../README.md"
+keywords = ["pagination", "rocket", "web", "rest", "api"]
+categories = ["web-programming"]
+
+[dependencies]
+paginator-rs = { workspace = true }
+paginator-utils = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rocket = { version = "0.5", default-features = false, features = ["json"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }

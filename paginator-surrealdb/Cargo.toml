@@ -1,0 +1,29 @@
+[package]
+name = "paginator-surrealdb"
+version = "0.1.1"
+edition = "2021"
+authors = ["Maulana Sodiqin <sodiqincahyana1@gmail.com>"]
+description = "SurrealDB integration for paginator-rs with multi-model database support"
+license = "MIT"
+repository = "https://github.com/maulanasdqn/paginator-rs"
+readme = "../README.md"
+keywords = ["pagination", "surrealdb", "database", "nosql"]
+categories = ["database"]
+
+[dependencies]
+paginator-rs = { workspace = true }
+paginator-utils = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+surrealdb = { version = "2.1", default-features = false }
+async-trait = "0.1"
+
+[features]
+default = []
+protocol-ws = ["surrealdb/protocol-ws"]
+protocol-http = ["surrealdb/protocol-http"]
+kv-mem = ["surrealdb/kv-mem"]
+kv-rocksdb = ["surrealdb/kv-rocksdb"]
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }

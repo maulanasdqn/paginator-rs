@@ -1,11 +1,11 @@
 [package]
 name = "paginator-utils"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
-authors = ["Maulana Sodiqin <your@email.com>"]
+authors = ["Maulana Sodiqin <sodiqincahyana1@gmail.com>"]
 description = "Shared pagination response structures"
 license = "MIT"
-repository = "https://github.com/your-username/paginator-rs"
+repository = "https://github.com/maulanasdqn/paginator-rs"
 readme = "../README.md"
 keywords = ["pagination", "rust", "serde"]
 categories = ["data-structures"]

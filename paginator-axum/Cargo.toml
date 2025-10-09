@@ -1,0 +1,23 @@
+[package]
+name = "paginator-axum"
+version = "0.1.1"
+edition = "2021"
+authors = ["Maulana Sodiqin <sodiqincahyana1@gmail.com>"]
+description = "Axum web framework integration for paginator-rs"
+license = "MIT"
+repository = "https://github.com/maulanasdqn/paginator-rs"
+readme = "../README.md"
+keywords = ["pagination", "axum", "web", "rest", "api"]
+categories = ["web-programming"]
+
+[dependencies]
+paginator-rs = { workspace = true }
+paginator-utils = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+axum = { version = "0.7", default-features = false, features = ["json", "query"] }
+async-trait = "0.1"
+http = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
