@@ -11,8 +11,8 @@ keywords = ["pagination", "sqlx", "database", "postgres", "mysql"]
 categories = ["database"]
 
 [dependencies]
-paginator-rs = { workspace = true }
-paginator-utils = { workspace = true }
+paginator-rs = { path = "../paginator-rs", version = "0.2.0" }
+paginator-utils = { path = "../paginator-utils", version = "0.2.0" }
 serde = { workspace = true }
 sqlx = { version = "0.8", default-features = false }
 

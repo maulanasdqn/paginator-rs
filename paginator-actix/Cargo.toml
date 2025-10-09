@@ -11,8 +11,8 @@ keywords = ["pagination", "actix", "actix-web", "web", "rest"]
 categories = ["web-programming"]
 
 [dependencies]
-paginator-rs = { workspace = true }
-paginator-utils = { workspace = true }
+paginator-rs = { path = "../paginator-rs", version = "0.2.0" }
+paginator-utils = { path = "../paginator-utils", version = "0.2.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 actix-web = "4.9"

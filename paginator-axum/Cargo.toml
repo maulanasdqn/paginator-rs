@@ -11,8 +11,8 @@ keywords = ["pagination", "axum", "web", "rest", "api"]
 categories = ["web-programming"]
 
 [dependencies]
-paginator-rs = { workspace = true }
-paginator-utils = { workspace = true }
+paginator-rs = { path = "../paginator-rs", version = "0.2.0" }
+paginator-utils = { path = "../paginator-utils", version = "0.2.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 axum = { version = "0.7", default-features = false, features = ["json", "query"] }

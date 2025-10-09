@@ -11,8 +11,8 @@ keywords = ["pagination", "surrealdb", "database", "nosql"]
 categories = ["database"]
 
 [dependencies]
-paginator-rs = { workspace = true }
-paginator-utils = { workspace = true }
+paginator-rs = { path = "../paginator-rs", version = "0.2.0" }
+paginator-utils = { path = "../paginator-utils", version = "0.2.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 surrealdb = { version = "2.1", default-features = false }
