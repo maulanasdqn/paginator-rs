@@ -15,8 +15,8 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 2);
-        assert_eq!(result.meta.total, 2);
-        assert_eq!(result.meta.total_pages, 1);
+        assert_eq!(result.meta.total, Some(2));
+        assert_eq!(result.meta.total_pages, Some(1));
         assert_eq!(result.meta.has_next, false);
         assert_eq!(result.meta.has_prev, false);
         assert_eq!(result.data[0].name, "John Doe");
@@ -49,8 +49,6 @@ pub mod tests {
         assert_eq!(result, expected);
     }
 
-    // ==================== PAGINATION EDGE CASES ====================
-
     #[test]
     fn test_empty_dataset() {
         let users: Vec<UsersData> = vec![];
@@ -58,8 +56,8 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 0);
-        assert_eq!(result.meta.total, 0);
-        assert_eq!(result.meta.total_pages, 0);
+        assert_eq!(result.meta.total, Some(0));
+        assert_eq!(result.meta.total_pages, Some(0));
         assert_eq!(result.meta.has_next, false);
         assert_eq!(result.meta.has_prev, false);
     }
@@ -71,8 +69,8 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 1);
-        assert_eq!(result.meta.total, 1);
-        assert_eq!(result.meta.total_pages, 1);
+        assert_eq!(result.meta.total, Some(1));
+        assert_eq!(result.meta.total_pages, Some(1));
         assert_eq!(result.meta.has_next, false);
         assert_eq!(result.meta.has_prev, false);
     }
@@ -87,8 +85,8 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 10);
-        assert_eq!(result.meta.total, 10);
-        assert_eq!(result.meta.total_pages, 1);
+        assert_eq!(result.meta.total, Some(10));
+        assert_eq!(result.meta.total_pages, Some(1));
         assert_eq!(result.meta.has_next, false);
         assert_eq!(result.meta.has_prev, false);
     }
@@ -99,17 +97,15 @@ pub mod tests {
             .map(|i| UsersData::new(i, format!("User {}", i), format!("user{}@test.com", i)))
             .collect();
 
-        // Page 1
         let params = PaginationParams::new(1, 10);
         let result = users.paginate(&params).unwrap();
         assert_eq!(result.data.len(), 10);
         assert_eq!(result.meta.page, 1);
-        assert_eq!(result.meta.total, 25);
-        assert_eq!(result.meta.total_pages, 3);
+        assert_eq!(result.meta.total, Some(25));
+        assert_eq!(result.meta.total_pages, Some(3));
         assert_eq!(result.meta.has_next, true);
         assert_eq!(result.meta.has_prev, false);
 
-        // Page 2
         let params = PaginationParams::new(2, 10);
         let result = users.paginate(&params).unwrap();
         assert_eq!(result.data.len(), 10);
@@ -117,7 +113,6 @@ pub mod tests {
         assert_eq!(result.meta.has_next, true);
         assert_eq!(result.meta.has_prev, true);
 
-        // Page 3 (partial)
         let params = PaginationParams::new(3, 10);
         let result = users.paginate(&params).unwrap();
         assert_eq!(result.data.len(), 5);
@@ -137,8 +132,8 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 0);
-        assert_eq!(result.meta.total, 2);
-        assert_eq!(result.meta.total_pages, 1);
+        assert_eq!(result.meta.total, Some(2));
+        assert_eq!(result.meta.total_pages, Some(1));
         assert_eq!(result.meta.page, 10);
     }
 
@@ -152,11 +147,9 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 5);
-        assert_eq!(result.meta.total, 5);
-        assert_eq!(result.meta.total_pages, 1);
+        assert_eq!(result.meta.total, Some(5));
+        assert_eq!(result.meta.total_pages, Some(1));
     }
-
-    // ==================== FILTERING EDGE CASES ====================
 
     #[test]
     fn test_filter_no_matches() {
@@ -174,7 +167,7 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 0);
-        assert_eq!(result.meta.total, 0);
+        assert_eq!(result.meta.total, Some(0));
     }
 
     #[test]
@@ -192,7 +185,7 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 5);
-        assert_eq!(result.meta.total, 5);
+        assert_eq!(result.meta.total, Some(5));
     }
 
     #[test]
@@ -324,9 +317,7 @@ pub mod tests {
             UsersData::new(3, "Bob Smith".into(), "bob@smith.com".into()),
         ];
 
-        let params = PaginatorBuilder::new()
-            .filter_like("name", "%Doe%")
-            .build();
+        let params = PaginatorBuilder::new().filter_like("name", "%Doe%").build();
 
         let result = users.paginate(&params).unwrap();
 
@@ -334,8 +325,6 @@ pub mod tests {
         assert!(result.data[0].name.contains("Doe"));
         assert!(result.data[1].name.contains("Doe"));
     }
-
-    // ==================== SEARCH EDGE CASES ====================
 
     #[test]
     fn test_search_no_matches() {
@@ -351,7 +340,7 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 0);
-        assert_eq!(result.meta.total, 0);
+        assert_eq!(result.meta.total, Some(0));
     }
 
     #[test]
@@ -439,8 +428,6 @@ pub mod tests {
         assert_eq!(result.data[0].name, "John Doe");
     }
 
-    // ==================== SORTING EDGE CASES ====================
-
     #[test]
     fn test_sort_ascending() {
         let users = vec![
@@ -449,10 +436,7 @@ pub mod tests {
             UsersData::new(2, "Bob".into(), "bob@test.com".into()),
         ];
 
-        let params = PaginatorBuilder::new()
-            .sort_by("name")
-            .sort_asc()
-            .build();
+        let params = PaginatorBuilder::new().sort_by("name").sort_asc().build();
 
         let result = users.paginate(&params).unwrap();
 
@@ -469,10 +453,7 @@ pub mod tests {
             UsersData::new(3, "Charlie".into(), "charlie@test.com".into()),
         ];
 
-        let params = PaginatorBuilder::new()
-            .sort_by("name")
-            .sort_desc()
-            .build();
+        let params = PaginatorBuilder::new().sort_by("name").sort_desc().build();
 
         let result = users.paginate(&params).unwrap();
 
@@ -489,10 +470,7 @@ pub mod tests {
             UsersData::new(8, "User 8".into(), "user8@test.com".into()),
         ];
 
-        let params = PaginatorBuilder::new()
-            .sort_by("id")
-            .sort_asc()
-            .build();
+        let params = PaginatorBuilder::new().sort_by("id").sort_asc().build();
 
         let result = users.paginate(&params).unwrap();
 
@@ -500,8 +478,6 @@ pub mod tests {
         assert_eq!(result.data[1].id, 5);
         assert_eq!(result.data[2].id, 8);
     }
-
-    // ==================== COMBINED OPERATIONS ====================
 
     #[test]
     fn test_filter_and_search_combined() {
@@ -519,9 +495,6 @@ pub mod tests {
 
         let result = users.paginate(&params).unwrap();
 
-        // Both "John Doe" and "Bob Johnson" match:
-        // - Both have emails with "example"
-        // - Both have "John" in their name
         assert_eq!(result.data.len(), 2);
         assert_eq!(result.data[0].name, "John Doe");
         assert_eq!(result.data[1].name, "Bob Johnson");
@@ -550,13 +523,12 @@ pub mod tests {
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 2);
-        assert_eq!(result.meta.total, 4); // All developers
-        assert_eq!(result.meta.total_pages, 2);
+        assert_eq!(result.meta.total, Some(4));
+        assert_eq!(result.meta.total_pages, Some(2));
         assert_eq!(result.meta.has_next, true);
         assert_eq!(result.data[0].name, "Alice Developer");
         assert_eq!(result.data[1].name, "Bob Developer");
 
-        // Test page 2
         let params_page2 = PaginatorBuilder::new()
             .page(2)
             .per_page(2)
@@ -605,16 +577,13 @@ pub mod tests {
             .map(|i| UsersData::new(i, format!("User {}", i), format!("user{}@test.com", i)))
             .collect();
 
-        let params = PaginatorBuilder::new()
-            .page(5)
-            .per_page(20)
-            .build();
+        let params = PaginatorBuilder::new().page(5).per_page(20).build();
 
         let result = users.paginate(&params).unwrap();
 
         assert_eq!(result.data.len(), 20);
-        assert_eq!(result.meta.total, 100);
-        assert_eq!(result.meta.total_pages, 5);
+        assert_eq!(result.meta.total, Some(100));
+        assert_eq!(result.meta.total_pages, Some(5));
         assert_eq!(result.meta.page, 5);
         assert_eq!(result.meta.has_next, false);
         assert_eq!(result.meta.has_prev, true);

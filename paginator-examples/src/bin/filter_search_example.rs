@@ -6,11 +6,27 @@ fn main() {
         UsersData::new(1, "John Doe".to_string(), "john@doe.com".to_string()),
         UsersData::new(2, "Jane Doe".to_string(), "jane@doe.com".to_string()),
         UsersData::new(3, "Bob Smith".to_string(), "bob@smith.com".to_string()),
-        UsersData::new(4, "Alice Johnson".to_string(), "alice@johnson.com".to_string()),
-        UsersData::new(5, "Charlie Brown".to_string(), "charlie@brown.com".to_string()),
-        UsersData::new(6, "David Wilson".to_string(), "david@wilson.com".to_string()),
+        UsersData::new(
+            4,
+            "Alice Johnson".to_string(),
+            "alice@johnson.com".to_string(),
+        ),
+        UsersData::new(
+            5,
+            "Charlie Brown".to_string(),
+            "charlie@brown.com".to_string(),
+        ),
+        UsersData::new(
+            6,
+            "David Wilson".to_string(),
+            "david@wilson.com".to_string(),
+        ),
         UsersData::new(7, "Eve Davis".to_string(), "eve@davis.com".to_string()),
-        UsersData::new(8, "Frank Miller".to_string(), "frank@miller.com".to_string()),
+        UsersData::new(
+            8,
+            "Frank Miller".to_string(),
+            "frank@miller.com".to_string(),
+        ),
     ];
 
     println!("=== Example 1: Filter by ID greater than 3 ===");
@@ -83,10 +99,17 @@ fn main() {
     match users.paginate(&params) {
         Ok(result) => {
             println!("Combined filter and search results:");
-            println!("Total matching: {}", result.meta.total);
-            println!("Page {}/{}", result.meta.page, result.meta.total_pages);
+            if let Some(total) = result.meta.total {
+                println!("Total matching: {}", total);
+            }
+            if let Some(total_pages) = result.meta.total_pages {
+                println!("Page {}/{}", result.meta.page, total_pages);
+            }
             for user in &result.data {
-                println!("  - ID: {}, Name: {}, Email: {}", user.id, user.name, user.email);
+                println!(
+                    "  - ID: {}, Name: {}, Email: {}",
+                    user.id, user.name, user.email
+                );
             }
             println!();
         }

@@ -7,7 +7,11 @@ fn main() {
         UsersData::new(2, "Jane Doe".to_string(), "jane@doe.com".to_string()),
         UsersData::new(3, "Bob Doe".to_string(), "bob@doe.com".to_string()),
         UsersData::new(4, "Alice Smith".to_string(), "alice@smith.com".to_string()),
-        UsersData::new(5, "Charlie Brown".to_string(), "charlie@brown.com".to_string()),
+        UsersData::new(
+            5,
+            "Charlie Brown".to_string(),
+            "charlie@brown.com".to_string(),
+        ),
     ];
 
     println!("=== Example 1: Simple pagination (page 1, 2 items per page) ===");

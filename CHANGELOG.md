@@ -5,6 +5,100 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-10-24
+
+### Added
+
+#### Cursor-based Pagination
+- **Keyset Pagination System** - Implemented cursor-based pagination for consistent results:
+  - Added `Cursor`, `CursorDirection`, and `CursorValue` types in `paginator-utils`
+  - Base64 encoding/decoding for secure cursor transmission via `.encode()` and `.decode()`
+  - Builder methods: `.cursor()`, `.cursor_after()`, `.cursor_before()`, `.cursor_from_encoded()`
+  - Response metadata includes `next_cursor` and `prev_cursor` fields
+  - Implemented in `paginator-sqlx` (Postgres, MySQL, SQLite)
+  - Implemented in `paginator-sea-orm` with SeaORM query builder integration
+  - Implemented in `paginator-surrealdb` with SurrealQL support
+  - Uses WHERE field > value instead of OFFSET for better performance
+  - LIMIT +1 strategy for efficient has_next detection
+  - 3 comprehensive cursor encoding/decoding tests
+
+#### Optional COUNT() Queries
+- **Performance Optimization** - Skip expensive COUNT queries when not needed:
+  - Added `.disable_total_count()` builder method
+  - `total` and `total_pages` fields now `Option<u32>` in response metadata
+  - Still provides `has_next` via LIMIT +1 strategy without counting
+  - Implemented across all database integrations (SQLx, SeaORM, SurrealDB)
+  - Web framework integrations conditionally include headers
+
+#### CTE Support
+- **Common Table Expression Handling** - Enhanced SQL query support:
+  - Automatic detection of WITH clauses in `paginator-sqlx`
+  - Proper query wrapping for CTEs with filters and search
+  - Prevents breaking complex queries with subquery wrapping
+  - Works seamlessly with existing filter and search features
+
+### Security
+
+#### SQL Injection Prevention
+- **Critical Security Fix** - Replaced string concatenation with parameterized queries:
+  - Created `QueryBuilderExt` trait in `paginator-sqlx/src/query_builder.rs`
+  - All filter and search parameters now use `.push_bind()` instead of string interpolation
+  - Affects Postgres, MySQL, and SQLite implementations
+  - Prevents SQL injection attacks through filter values
+  - Comprehensive parameterization for all filter operators (Eq, Ne, Gt, Lt, In, Like, etc.)
+
+### Fixed
+
+#### GitHub Issue #2 - paginator-sqlx 0.2.0 Broken
+- **Executor Move Error (E0382)** - Fixed compilation errors in published crate:
+  - Properly using `executor.clone()` for intermediate COUNT queries
+  - Original executor used for final data query
+  - Affects all SQLx database implementations
+  - Version bumped to 0.2.1 to replace broken 0.2.0 on crates.io
+
+#### Compilation Warnings
+- **Zero Warnings Achievement** - Cleaned up entire codebase:
+  - Removed unused `Cursor` import from `paginator-sqlx/src/postgres.rs`
+  - Removed unused `Cursor` import from `paginator-sqlx/src/mysql.rs`
+  - Removed unused `Cursor` import from `paginator-sqlx/src/sqlite.rs`
+  - Removed unused `Cursor` import from `paginator-sea-orm/src/lib.rs`
+  - Removed unused `Cursor` import from `paginator-surrealdb/src/query.rs`
+  - All 36 tests passing with zero warnings
+
+### Changed
+
+#### Breaking Changes
+- **BREAKING**: `PaginatorResponseMeta` fields now optional:
+  - `total: u32` → `total: Option<u32>`
+  - `total_pages: u32` → `total_pages: Option<u32>`
+  - Migration: Use pattern matching or `.unwrap_or()` when accessing these fields
+  - Web framework integrations (Axum, Rocket, Actix) updated to handle optional headers
+  - Headers only included when values are present
+
+- **Version Bump** - All workspace crates updated from 0.2.0 to 0.2.1:
+  - `paginator-utils`: 0.2.1
+  - `paginator-rs`: 0.2.1
+  - `paginator-sqlx`: 0.2.1
+  - `paginator-sea-orm`: 0.2.1
+  - `paginator-surrealdb`: 0.2.1
+  - `paginator-axum`: 0.2.1
+  - `paginator-rocket`: 0.2.1
+  - `paginator-actix`: 0.2.1
+
+### Technical Details
+
+#### Cursor Pagination Benefits
+- Better performance for large datasets (no OFFSET overhead)
+- Consistent results even with concurrent data modifications
+- No skipped or duplicate rows during pagination
+- Efficient has_next detection without COUNT query
+
+#### Implementation Notes
+- Cursor pagination is opt-in and backward compatible
+- Operator selection based on sort direction: After+Asc uses >, After+Desc uses <
+- Before cursor reverses the operator logic
+- Works seamlessly with existing filters and search
+
 ## [0.2.0] - 2025-10-09
 
 ### Added
@@ -119,6 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error handling with `PaginatorError`
 - Basic examples
 
+[0.2.1]: https://github.com/maulanasdqn/paginator-rs/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/maulanasdqn/paginator-rs/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/maulanasdqn/paginator-rs/compare/v0.1.0...v0.1.2
 [0.1.0]: https://github.com/maulanasdqn/paginator-rs/releases/tag/v0.1.0

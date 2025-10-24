@@ -1,32 +1,5 @@
-//! SeaORM integration for paginator-rs
-//!
-//! This crate provides pagination support for SeaORM entities with type-safe query building.
-//!
-//! # Example
-//!
-//! ```ignore
-//! use sea_orm::{Database, EntityTrait};
-//! use paginator_sea_orm::PaginateSeaOrm;
-//! use paginator_rs::PaginatorBuilder;
-//!
-//! // Assuming you have a User entity
-//! async fn get_users(db: &DatabaseConnection) -> Result<(), sea_orm::DbErr> {
-//!     let params = PaginatorBuilder::new()
-//!         .page(1)
-//!         .per_page(10)
-//!         .build();
-//!
-//!     let result = User::find()
-//!         .paginate_with(db, &params)
-//!         .await?;
-//!
-//!     println!("Users: {:?}", result);
-//!     Ok(())
-//! }
-//! ```
-
 use paginator_rs::{
-    FilterOperator, FilterValue, PaginationParams, PaginatorError, PaginatorResponse,
+    CursorDirection, CursorValue, FilterOperator, FilterValue, PaginationParams, PaginatorError, PaginatorResponse,
     PaginatorResponseMeta,
 };
 use sea_orm::{
@@ -36,7 +9,6 @@ use sea_orm::{
 };
 use serde::Serialize;
 
-/// Convert a FilterValue to a sea_query Value
 fn filter_value_to_sea_value(value: &FilterValue) -> sea_orm::sea_query::Value {
     match value {
         FilterValue::String(s) => s.clone().into(),
@@ -44,18 +16,39 @@ fn filter_value_to_sea_value(value: &FilterValue) -> sea_orm::sea_query::Value {
         FilterValue::Float(f) => (*f).into(),
         FilterValue::Bool(b) => (*b).into(),
         FilterValue::Null => sea_orm::sea_query::Value::String(None),
-        FilterValue::Array(_) => {
-            // Arrays are handled separately for IN/NOT IN operators
-            sea_orm::sea_query::Value::String(None)
-        }
+        FilterValue::Array(_) => sea_orm::sea_query::Value::String(None),
     }
 }
 
-/// Build a SeaORM condition from our filter system
+fn cursor_value_to_sea_value(value: &CursorValue) -> sea_orm::sea_query::Value {
+    match value {
+        CursorValue::String(s) => s.clone().into(),
+        CursorValue::Int(i) => (*i).into(),
+        CursorValue::Float(f) => (*f).into(),
+    }
+}
+
 fn build_filter_condition(params: &PaginationParams) -> Condition {
     let mut condition = Condition::all();
 
-    // Apply filters
+    if let Some(ref cursor) = params.cursor {
+        let col = Expr::col(Alias::new(&cursor.field));
+        let cursor_val = cursor_value_to_sea_value(&cursor.value);
+
+        let cursor_expr = match cursor.direction {
+            CursorDirection::After => match params.sort_direction.as_ref() {
+                Some(paginator_rs::SortDirection::Desc) => col.lt(cursor_val),
+                _ => col.gt(cursor_val),
+            },
+            CursorDirection::Before => match params.sort_direction.as_ref() {
+                Some(paginator_rs::SortDirection::Desc) => col.gt(cursor_val),
+                _ => col.lt(cursor_val),
+            },
+        };
+
+        condition = condition.add(cursor_expr);
+    }
+
     for filter in &params.filters {
         let col = Expr::col(Alias::new(&filter.field));
 
@@ -68,7 +61,6 @@ fn build_filter_condition(params: &PaginationParams) -> Condition {
             (FilterOperator::Lte, value) => col.lte(filter_value_to_sea_value(value)),
             (FilterOperator::Like, FilterValue::String(pattern)) => col.like(pattern.clone()),
             (FilterOperator::ILike, FilterValue::String(pattern)) => {
-                // SeaORM doesn't have native ILIKE, use LIKE with LOWER
                 Expr::expr(Expr::cust(&format!("LOWER({})", filter.field)))
                     .like(pattern.to_lowercase())
             }
@@ -92,13 +84,12 @@ fn build_filter_condition(params: &PaginationParams) -> Condition {
             (FilterOperator::Contains, FilterValue::String(value)) => {
                 col.like(format!("%{}%", value))
             }
-            _ => continue, // Skip unsupported operator/value combinations
+            _ => continue,
         };
 
         condition = condition.add(filter_expr);
     }
 
-    // Apply search
     if let Some(ref search) = params.search {
         let mut search_condition = Condition::any();
 
@@ -113,7 +104,6 @@ fn build_filter_condition(params: &PaginationParams) -> Condition {
             let search_expr = if search.case_sensitive {
                 col.like(pattern)
             } else {
-                // Use LOWER for case-insensitive search
                 Expr::expr(Expr::cust(&format!("LOWER({})", field))).like(pattern.to_lowercase())
             };
 
@@ -126,7 +116,6 @@ fn build_filter_condition(params: &PaginationParams) -> Condition {
     condition
 }
 
-/// Extension trait for paginating SeaORM queries
 #[async_trait::async_trait]
 pub trait PaginateSeaOrm<'db, C>
 where
@@ -134,7 +123,6 @@ where
 {
     type Item;
 
-    /// Paginate this query with the given parameters
     async fn paginate_with(
         self,
         db: &'db C,
@@ -156,54 +144,60 @@ where
         db: &'db C,
         params: &PaginationParams,
     ) -> Result<PaginatorResponse<Self::Item>, PaginatorError> {
-        // Apply filters and search conditions
         let filter_condition = build_filter_condition(params);
         let mut query = self.filter(filter_condition.clone());
 
-        // Get total count (with filters applied)
-        let total = query
-            .clone()
-            .count(db)
-            .await
-            .map_err(|e| PaginatorError::Custom(format!("Count query failed: {}", e)))?;
+        let total = if params.disable_total_count {
+            None
+        } else {
+            let count = query
+                .clone()
+                .count(db)
+                .await
+                .map_err(|e| PaginatorError::Custom(format!("Count query failed: {}", e)))?;
+            Some(count)
+        };
 
-        // Apply offset and limit
-        query = query
-            .offset(params.offset() as u64)
-            .limit(params.limit() as u64);
+        if params.cursor.is_some() {
+            query = query.limit((params.limit() + 1) as u64);
+        } else {
+            query = query
+                .offset(params.offset() as u64)
+                .limit(params.limit() as u64);
+        }
 
-        // Execute query
-        let data = query
+        let mut data = query
             .all(db)
             .await
             .map_err(|e| PaginatorError::Custom(format!("Paginated query failed: {}", e)))?;
 
+        let meta = if params.cursor.is_some() {
+            let has_next = data.len() > params.per_page as usize;
+            if has_next {
+                data.truncate(params.per_page as usize);
+            }
+            PaginatorResponseMeta::new_with_cursors(
+                params.page,
+                params.per_page,
+                total.map(|t| t as u32),
+                has_next,
+                None,
+                None,
+            )
+        } else if let Some(count) = total {
+            PaginatorResponseMeta::new(params.page, params.per_page, count as u32)
+        } else {
+            let has_next = data.len() as u32 > params.per_page;
+            PaginatorResponseMeta::new_without_total(params.page, params.per_page, has_next)
+        };
+
         Ok(PaginatorResponse {
             data,
-            meta: PaginatorResponseMeta::new(params.page, params.per_page, total as u32),
+            meta,
         })
     }
 }
 
-/// Helper function to paginate any SeaORM Select query
-///
-/// # Example
-///
-/// ```ignore
-/// use sea_orm::{EntityTrait, ColumnTrait, QueryFilter};
-/// use paginator_sea_orm::paginate;
-/// use paginator_rs::PaginationParams;
-///
-/// async fn get_active_users(db: &DatabaseConnection) -> Result<(), sea_orm::DbErr> {
-///     let params = PaginationParams::new(1, 20);
-///
-///     let query = User::find()
-///         .filter(user::Column::Active.eq(true));
-///
-///     let result = paginate(query, db, &params).await?;
-///     Ok(())
-/// }
-/// ```
 pub async fn paginate<'db, C, E>(
     select: Select<E>,
     db: &'db C,
@@ -217,42 +211,6 @@ where
     select.paginate_with(db, params).await
 }
 
-/// Paginate with sorting support
-///
-/// # Example
-///
-/// ```ignore
-/// use sea_orm::Order;
-/// use paginator_sea_orm::paginate_with_sort;
-/// use paginator_rs::{PaginationParams, SortDirection};
-///
-/// async fn get_sorted_users(db: &DatabaseConnection) -> Result<(), sea_orm::DbErr> {
-///     let params = PaginationParams::new(1, 20)
-///         .with_sort("name")
-///         .with_direction(SortDirection::Asc);
-///
-///     let query = User::find();
-///
-///     let result = paginate_with_sort(
-///         query,
-///         db,
-///         &params,
-///         |q, field, direction| {
-///             match field {
-///                 "name" => {
-///                     if direction == &SortDirection::Asc {
-///                         q.order_by_asc(user::Column::Name)
-///                     } else {
-///                         q.order_by_desc(user::Column::Name)
-///                     }
-///                 },
-///                 _ => q,
-///             }
-///         }
-///     ).await?;
-///     Ok(())
-/// }
-/// ```
 pub async fn paginate_with_sort<'db, C, E, F>(
     select: Select<E>,
     db: &'db C,
@@ -267,7 +225,6 @@ where
 {
     let mut query = select;
 
-    // Apply sorting if specified
     if let Some(ref field) = params.sort_by {
         if let Some(ref direction) = params.sort_direction {
             query = sort_fn(query, field, direction);
