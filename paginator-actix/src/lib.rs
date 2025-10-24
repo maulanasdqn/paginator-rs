@@ -1,56 +1,7 @@
-//! Actix-web framework integration for paginator-rs
-//!
-//! This crate provides extractors and responders for seamless pagination in Actix-web applications.
-//!
-//! # Example
-//!
-//! ```ignore
-//! use actix_web::{get, web, App, HttpServer};
-//! use paginator_actix::{PaginationQuery, PaginatedJson};
-//! use serde::Serialize;
-//!
-//! #[derive(Serialize)]
-//! struct User {
-//!     id: u32,
-//!     name: String,
-//! }
-//!
-//! #[get("/users")]
-//! async fn get_users(
-//!     query: web::Query<PaginationQuery>,
-//! ) -> PaginatedJson<User> {
-//!     // Fetch users from database with query.params
-//!     let users = vec![/* ... */];
-//!
-//!     PaginatedJson::new(users, &query.params, 100)
-//! }
-//!
-//! #[actix_web::main]
-//! async fn main() -> std::io::Result<()> {
-//!     HttpServer::new(|| {
-//!         App::new().service(get_users)
-//!     })
-//!     .bind(("127.0.0.1", 8080))?
-//!     .run()
-//!     .await
-//! }
-//! ```
-
 use actix_web::{body::BoxBody, HttpRequest, HttpResponse, Responder};
 use paginator_rs::{PaginationParams, PaginatorResponse, PaginatorResponseMeta, SortDirection};
 use serde::{Deserialize, Serialize};
 
-/// Query extractor for pagination parameters
-///
-/// # Example
-///
-/// ```ignore
-/// #[get("/items")]
-/// async fn items(query: web::Query<PaginationQuery>) {
-///     let params = &query.params;
-///     // Use params...
-/// }
-/// ```
 #[derive(Debug, Clone, Deserialize)]
 pub struct PaginationQuery {
     #[serde(default = "default_page")]
@@ -70,29 +21,9 @@ fn default_per_page() -> u32 {
 }
 
 impl PaginationQuery {
-    /// Convert to PaginationParams
     pub fn into_params(self) -> PaginationParams {
-        let sort_direction = self.sort_direction.and_then(|s| match s.to_lowercase().as_str() {
-            "asc" => Some(SortDirection::Asc),
-            "desc" => Some(SortDirection::Desc),
-            _ => None,
-        });
-
-        PaginationParams {
-            page: self.page.max(1),
-            per_page: self.per_page.max(1).min(100),
-            sort_by: self.sort_by,
-            sort_direction,
-            filters: Vec::new(),
-            search: None,
-        }
-    }
-
-    /// Get a reference to the params
-    pub fn as_params(&self) -> PaginationParams {
         let sort_direction = self
             .sort_direction
-            .as_ref()
             .and_then(|s| match s.to_lowercase().as_str() {
                 "asc" => Some(SortDirection::Asc),
                 "desc" => Some(SortDirection::Desc),
@@ -102,17 +33,38 @@ impl PaginationQuery {
         PaginationParams {
             page: self.page.max(1),
             per_page: self.per_page.max(1).min(100),
+            sort_by: self.sort_by,
+            sort_direction,
+            filters: Vec::new(),
+            search: None,
+            disable_total_count: false,
+            cursor: None,
+        }
+    }
+
+    pub fn as_params(&self) -> PaginationParams {
+        let sort_direction =
+            self.sort_direction
+                .as_ref()
+                .and_then(|s| match s.to_lowercase().as_str() {
+                    "asc" => Some(SortDirection::Asc),
+                    "desc" => Some(SortDirection::Desc),
+                    _ => None,
+                });
+
+        PaginationParams {
+            page: self.page.max(1),
+            per_page: self.per_page.max(1).min(100),
             sort_by: self.sort_by.clone(),
             sort_direction,
             filters: Vec::new(),
             search: None,
+            disable_total_count: false,
+            cursor: None,
         }
     }
 }
 
-/// Paginated JSON response
-///
-/// Automatically adds pagination metadata to response headers
 #[derive(Debug)]
 pub struct PaginatedJson<T> {
     response: PaginatorResponse<T>,
@@ -122,7 +74,6 @@ impl<T> PaginatedJson<T>
 where
     T: Serialize,
 {
-    /// Create a new paginated response
     pub fn new(data: Vec<T>, params: &PaginationParams, total: u32) -> Self {
         Self {
             response: PaginatorResponse {
@@ -132,7 +83,6 @@ where
         }
     }
 
-    /// Create from an existing PaginatorResponse
     pub fn from_response(response: PaginatorResponse<T>) -> Self {
         Self { response }
     }
@@ -147,40 +97,19 @@ where
     fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
         let mut response = HttpResponse::Ok();
 
-        // Add pagination headers
-        response.insert_header((
-            "X-Total-Count",
-            self.response.meta.total.to_string(),
-        ));
-        response.insert_header((
-            "X-Total-Pages",
-            self.response.meta.total_pages.to_string(),
-        ));
-        response.insert_header((
-            "X-Current-Page",
-            self.response.meta.page.to_string(),
-        ));
-        response.insert_header((
-            "X-Per-Page",
-            self.response.meta.per_page.to_string(),
-        ));
+        if let Some(total) = self.response.meta.total {
+            response.insert_header(("X-Total-Count", total.to_string()));
+        }
+        if let Some(total_pages) = self.response.meta.total_pages {
+            response.insert_header(("X-Total-Pages", total_pages.to_string()));
+        }
+        response.insert_header(("X-Current-Page", self.response.meta.page.to_string()));
+        response.insert_header(("X-Per-Page", self.response.meta.per_page.to_string()));
 
         response.json(&self.response)
     }
 }
 
-/// Helper to create a paginated response from query results
-///
-/// # Example
-///
-/// ```ignore
-/// #[get("/users")]
-/// async fn users(query: web::Query<PaginationQuery>) -> PaginatedJson<User> {
-///     let params = query.as_params();
-///     let users = fetch_users(&params);
-///     create_paginated_response(users, &params, 100)
-/// }
-/// ```
 pub fn create_paginated_response<T>(
     data: Vec<T>,
     params: &PaginationParams,
@@ -192,9 +121,6 @@ where
     PaginatedJson::new(data, params, total)
 }
 
-/// Middleware for automatically extracting pagination parameters
-///
-/// This can be used to add pagination support to existing handlers
 pub mod middleware {
     use actix_web::{
         dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},

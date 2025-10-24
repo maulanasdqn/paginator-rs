@@ -21,17 +21,17 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
     fn paginate(&self, params: &PaginationParams) -> PaginatorResult<PaginatorResponse<UsersData>> {
         use paginator_rs::{FilterOperator, FilterValue};
 
-        // Start with all data
+        
         let mut data = self.clone();
 
-        // Apply filters
+        
         for filter in &params.filters {
             data.retain(|user| {
                 let field_value = match filter.field.as_str() {
                     "id" => FilterValue::Int(user.id as i64),
                     "name" => FilterValue::String(user.name.clone()),
                     "email" => FilterValue::String(user.email.clone()),
-                    _ => return true, // Unknown field, keep the item
+                    _ => return true, 
                 };
 
                 match (&filter.operator, &filter.value) {
@@ -94,12 +94,12 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
                             false
                         }
                     }
-                    _ => true, // Unknown operator, keep the item
+                    _ => true, 
                 }
             });
         }
 
-        // Apply search
+        
         if let Some(ref search) = params.search {
             data.retain(|user| {
                 let search_query = if search.case_sensitive {
@@ -136,7 +136,7 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
 
         let total = data.len() as u32;
 
-        // Sort data if sort parameters are provided
+        
         if let Some(ref field) = params.sort_by {
             let direction = params
                 .sort_direction
@@ -171,15 +171,15 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
                         }
                     });
                 }
-                _ => {} // Unknown field, no sorting
+                _ => {} 
             }
         }
 
-        // Calculate pagination
+        
         let offset = params.offset() as usize;
         let limit = params.limit() as usize;
 
-        // Get paginated slice
+        
         let end = (offset + limit).min(data.len());
         let paginated_data = if offset < data.len() {
             data[offset..end].to_vec()

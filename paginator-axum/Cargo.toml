@@ -1,6 +1,6 @@
 [package]
 name = "paginator-axum"
-version = "0.1.1"
+version = "0.2.1"
 edition = "2021"
 authors = ["Maulana Sodiqin <sodiqincahyana1@gmail.com>"]
 description = "Axum web framework integration for paginator-rs"
@@ -11,8 +11,8 @@ keywords = ["pagination", "axum", "web", "rest", "api"]
 categories = ["web-programming"]
 
 [dependencies]
-paginator-rs = { path = "../paginator-rs", version = "0.2.0" }
-paginator-utils = { path = "../paginator-utils", version = "0.2.0" }
+paginator-rs = { path = "../paginator-rs", version = "0.2.1" }
+paginator-utils = { path = "../paginator-utils", version = "0.2.1" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 axum = { version = "0.7", default-features = false, features = ["json", "query"] }

@@ -1,6 +1,6 @@
 [package]
 name = "paginator-utils"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Maulana Sodiqin <sodiqincahyana1@gmail.com>"]
 description = "Shared pagination response structures"
@@ -13,3 +13,4 @@ categories = ["data-structures"]
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
+base64 = "0.22"
