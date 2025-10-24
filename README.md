@@ -12,6 +12,14 @@ A comprehensive, modular Rust pagination library with support for multiple datab
 - ⚠️ **Error Handling**: Comprehensive error types with helpful messages
 - 🔄 **JSON Serialization**: Built-in serde support
 
+### Advanced Features
+- 🔑 **Cursor Pagination**: Keyset-based pagination for large datasets with consistent results
+- ⚡ **Optional COUNT()**: Skip expensive COUNT queries with `.disable_total_count()`
+- 🔒 **SQL Injection Prevention**: Parameterized queries in all database integrations
+- 🏗️ **CTE Support**: Common Table Expressions (WITH clauses) work seamlessly
+- 🔍 **Advanced Filtering**: 14 filter operators (eq, ne, gt, lt, like, in, between, etc.)
+- 🔎 **Full-text Search**: Multi-field fuzzy search with case-sensitive options
+
 ### Database Integrations
 - **SQLx** (`paginator-sqlx`): PostgreSQL, MySQL, SQLite support
 - **SeaORM** (`paginator-sea-orm`): Type-safe ORM pagination with entity support
@@ -42,50 +50,50 @@ paginator-rs/
 ### Core Library
 ```toml
 [dependencies]
-paginator-rs = "0.1.2"
-paginator-utils = "0.1.2"
+paginator-rs = "0.2.1"
+paginator-utils = "0.2.1"
 serde = { version = "1", features = ["derive"] }
 ```
 
 ### With SQLx (PostgreSQL)
 ```toml
 [dependencies]
-paginator-sqlx = { version = "0.1", features = ["postgres", "runtime-tokio"] }
+paginator-sqlx = { version = "0.2.1", features = ["postgres", "runtime-tokio"] }
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"] }
 ```
 
 ### With SeaORM
 ```toml
 [dependencies]
-paginator-sea-orm = { version = "0.1", features = ["sqlx-postgres", "runtime-tokio"] }
+paginator-sea-orm = { version = "0.2.1", features = ["sqlx-postgres", "runtime-tokio"] }
 sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio"] }
 ```
 
 ### With SurrealDB
 ```toml
 [dependencies]
-paginator-surrealdb = { version = "0.1", features = ["protocol-ws", "kv-mem"] }
+paginator-surrealdb = { version = "0.2.1", features = ["protocol-ws", "kv-mem"] }
 surrealdb = { version = "2.1", features = ["protocol-ws", "kv-mem"] }
 ```
 
 ### With Axum
 ```toml
 [dependencies]
-paginator-axum = "0.1"
+paginator-axum = "0.2.1"
 axum = "0.7"
 ```
 
 ### With Rocket
 ```toml
 [dependencies]
-paginator-rocket = "0.1"
+paginator-rocket = "0.2.1"
 rocket = { version = "0.5", features = ["json"] }
 ```
 
 ### With Actix-web
 ```toml
 [dependencies]
-paginator-actix = "0.1"
+paginator-actix = "0.2.1"
 actix-web = "4"
 ```
 
@@ -163,6 +171,57 @@ if let Some(where_clause) = params.to_sql_where() {
     // Output: WHERE status = 'active' AND age > 18 AND (title ILIKE '%developer%' OR bio ILIKE '%developer%')
 }
 ```
+
+### Cursor-Based Pagination
+
+Cursor pagination (keyset pagination) provides better performance and consistency for large datasets compared to offset-based pagination.
+
+```rust
+use paginator_rs::{PaginatorBuilder, CursorValue, CursorDirection};
+
+// Example 1: First page with cursor support
+let params = PaginatorBuilder::new()
+    .per_page(20)
+    .sort_by("id")
+    .sort_asc()
+    .build();
+
+// Example 2: Next page using cursor (better than offset!)
+let params = PaginatorBuilder::new()
+    .per_page(20)
+    .sort_by("id")
+    .cursor_after("id", CursorValue::Int(42))
+    .build();
+
+// Example 3: Previous page
+let params = PaginatorBuilder::new()
+    .per_page(20)
+    .sort_by("id")
+    .cursor_before("id", CursorValue::Int(42))
+    .build();
+
+// Example 4: Decode from encoded cursor (from API response)
+let params = PaginatorBuilder::new()
+    .per_page(20)
+    .cursor_from_encoded("eyJmaWVsZCI6ImlkIiwidmFsdWUiOjQyLCJkaXJlY3Rpb24iOiJhZnRlciJ9")
+    .unwrap()
+    .build();
+
+// Example 5: Skip COUNT query for better performance
+let params = PaginatorBuilder::new()
+    .per_page(20)
+    .sort_by("created_at")
+    .cursor_after("created_at", CursorValue::String("2024-01-01T00:00:00Z".to_string()))
+    .disable_total_count()  // Skip expensive COUNT(*)
+    .build();
+```
+
+**Cursor Pagination Benefits:**
+- ✅ Better performance on large datasets (no OFFSET overhead)
+- ✅ Consistent results even with concurrent data modifications
+- ✅ No skipped or duplicate rows
+- ✅ Works with filters and search
+- ✅ Secure Base64-encoded cursor strings
 
 **Available Filter Operators:**
 - `filter_eq(field, value)` - Equal (=)
@@ -370,6 +429,8 @@ async fn get_users(
 
 ## 🧪 Response Format
 
+### Standard Pagination Response
+
 ```json
 {
   "data": [
@@ -387,6 +448,29 @@ async fn get_users(
 }
 ```
 
+### Cursor Pagination Response
+
+When using cursor pagination with `.disable_total_count()`:
+
+```json
+{
+  "data": [
+    { "id": 43, "name": "Charlie", "email": "charlie@example.com" },
+    { "id": 44, "name": "Diana", "email": "diana@example.com" }
+  ],
+  "meta": {
+    "page": 1,
+    "per_page": 20,
+    "has_next": true,
+    "has_prev": false,
+    "next_cursor": "eyJmaWVsZCI6ImlkIiwidmFsdWUiOjQ0LCJkaXJlY3Rpb24iOiJhZnRlciJ9",
+    "prev_cursor": "eyJmaWVsZCI6ImlkIiwidmFsdWUiOjQzLCJkaXJlY3Rpb24iOiJiZWZvcmUifQ=="
+  }
+}
+```
+
+**Note**: When `disable_total_count()` is used, `total` and `total_pages` fields are omitted from the response for better performance.
+
 ### HTTP Headers (Web Framework Integrations)
 
 ```
@@ -395,6 +479,8 @@ X-Total-Pages: 5
 X-Current-Page: 1
 X-Per-Page: 20
 ```
+
+**Note**: `X-Total-Count` and `X-Total-Pages` headers are only included when `total` is available (not using `disable_total_count()`).
 
 ## 🎯 Query Parameters
 
@@ -473,6 +559,49 @@ match result {
 - **Easy to Use**: Builder pattern and sensible defaults
 - **Easy to Debug**: Comprehensive error messages and type safety
 - **Easy to Maintain**: Modular crate structure with clear separation of concerns
+
+## 🔒 Security
+
+### SQL Injection Prevention
+
+All database integrations use **parameterized queries** with bound parameters to prevent SQL injection attacks:
+
+```rust
+// ✅ SAFE: All filter values are bound parameters
+let params = PaginatorBuilder::new()
+    .filter_eq("status", FilterValue::String("'; DROP TABLE users; --".to_string()))
+    .build();
+
+// The malicious input is safely escaped as a parameter value
+// SQL: WHERE status = $1  (with parameter: "'; DROP TABLE users; --")
+```
+
+**Implementation Details:**
+- `paginator-sqlx`: Uses SQLx's `QueryBuilder` with `.push_bind()` for all values
+- `paginator-sea-orm`: Uses SeaORM's type-safe query builder
+- `paginator-surrealdb`: Uses SurrealDB's parameterized query API
+- Filter values, search terms, and sort fields are never concatenated into SQL strings
+
+### Secure Cursor Encoding
+
+Cursors are Base64-encoded JSON objects to prevent tampering:
+
+```rust
+// Cursor structure: { "field": "id", "value": 42, "direction": "after" }
+// Encoded: "eyJmaWVsZCI6ImlkIiwidmFsdWUiOjQyLCJkaXJlY3Rpb24iOiJhZnRlciJ9"
+
+// ✅ Type-safe decoding with validation
+let cursor = Cursor::decode(encoded_cursor)?;
+// Returns error if cursor is tampered or invalid
+```
+
+### Best Practices
+
+- ✅ Always validate user input before building pagination parameters
+- ✅ Use type-safe filter values (`FilterValue::String`, `FilterValue::Int`, etc.)
+- ✅ Cursors are automatically validated during decoding
+- ✅ All database queries use parameterized statements
+- ✅ No raw SQL concatenation in any integration
 
 ## 📝 Examples
 
