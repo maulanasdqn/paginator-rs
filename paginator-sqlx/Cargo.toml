@@ -14,7 +14,7 @@ categories = ["database"]
 paginator-rs = { path = "../paginator-rs", version = "0.2.1" }
 paginator-utils = { path = "../paginator-utils", version = "0.2.1" }
 serde = { workspace = true }
-sqlx = { version = "0.8", default-features = false }
+sqlx = { version = ">=0.7, <1.0", default-features = false }
 
 [features]
 default = []
