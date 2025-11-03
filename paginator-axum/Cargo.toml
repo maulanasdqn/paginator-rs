@@ -15,7 +15,7 @@ paginator-rs = { path = "../paginator-rs", version = "0.2.1" }
 paginator-utils = { path = "../paginator-utils", version = "0.2.1" }
 serde = { workspace = true }
 serde_json = { workspace = true }
-axum = { version = "0.7", default-features = false, features = ["json", "query"] }
+axum = { version = ">=0.7, <1.0", default-features = false, features = ["json", "query"] }
 async-trait = "0.1"
 http = "1.0"
 

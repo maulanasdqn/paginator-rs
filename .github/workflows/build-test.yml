@@ -20,3 +20,18 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+
+  test-axum-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        axum-version: [0.7, 0.8]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Replace axum version in Cargo.toml
+      run: |
+        sed -i 's/axum = { version = ">=0\.7, <1\.0",/axum = { version = "${{ matrix.axum-version }}",/' paginator-axum/Cargo.toml
+    - name: Build paginator-axum
+      run: cargo build --package paginator-axum --verbose
+    - name: Run tests paginator-axum
+      run: cargo test --package paginator-axum --verbose 
