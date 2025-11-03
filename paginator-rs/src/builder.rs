@@ -1,4 +1,7 @@
-use paginator_utils::{Cursor, CursorDirection, CursorValue, Filter, FilterOperator, FilterValue, PaginationParams, SearchParams, SortDirection};
+use paginator_utils::{
+    Cursor, CursorDirection, CursorValue, Filter, FilterOperator, FilterValue, PaginationParams,
+    SearchParams, SortDirection,
+};
 
 pub struct PaginatorBuilder {
     params: PaginationParams,
@@ -23,7 +26,7 @@ impl PaginatorBuilder {
     }
 
     pub fn per_page(mut self, per_page: u32) -> Self {
-        self.params.per_page = per_page.max(1).min(100);
+        self.params.per_page = per_page.clamp(1, 100);
         self
     }
 
@@ -175,7 +178,12 @@ impl PaginatorBuilder {
         self
     }
 
-    pub fn cursor(mut self, field: impl Into<String>, value: CursorValue, direction: CursorDirection) -> Self {
+    pub fn cursor(
+        mut self,
+        field: impl Into<String>,
+        value: CursorValue,
+        direction: CursorDirection,
+    ) -> Self {
         self.params.cursor = Some(Cursor::new(field.into(), value, direction));
         self
     }

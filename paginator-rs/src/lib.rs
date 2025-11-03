@@ -1,10 +1,9 @@
-use paginator_utils;
 pub use paginator_utils::*;
 
+mod builder;
 mod error;
 mod trait_impl;
-mod builder;
 
+pub use builder::PaginatorBuilder;
 pub use error::{PaginatorError, PaginatorResult};
 pub use trait_impl::PaginatorTrait;
-pub use builder::PaginatorBuilder;

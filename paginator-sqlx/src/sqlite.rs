@@ -1,10 +1,13 @@
-use paginator_rs::{CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse, PaginatorResponseMeta};
+use crate::common::{PaginateQuery, PaginatedQuery};
+use crate::query_builder::QueryBuilderExt;
+use paginator_rs::{
+    CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse,
+    PaginatorResponseMeta,
+};
 use serde::Serialize;
+use sqlx::query_builder::QueryBuilder;
 use sqlx::sqlite::{SqliteArguments, SqliteRow};
 use sqlx::{query::Query, Executor, FromRow, Sqlite};
-use sqlx::query_builder::QueryBuilder;
-use crate::common::{PaginatedQuery, PaginateQuery};
-use crate::query_builder::QueryBuilderExt;
 
 impl<'q, T> PaginateQuery<'q, Sqlite, T> for Query<'q, Sqlite, SqliteArguments>
 where

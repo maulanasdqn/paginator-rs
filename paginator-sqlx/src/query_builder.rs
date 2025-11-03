@@ -171,10 +171,8 @@ where
     }
 }
 
-fn bind_value<'args, DB: Database>(
-    builder: &mut QueryBuilder<'args, DB>,
-    value: &FilterValue,
-) where
+fn bind_value<'args, DB: Database>(builder: &mut QueryBuilder<'args, DB>, value: &FilterValue)
+where
     i64: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
     f64: sqlx::Encode<'args, DB> + sqlx::Type<DB>,
     bool: sqlx::Encode<'args, DB> + sqlx::Type<DB>,

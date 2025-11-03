@@ -1,7 +1,7 @@
+use crate::query::paginate_query;
 use paginator_rs::{PaginationParams, PaginatorError, PaginatorResponse};
 use serde::{de::DeserializeOwned, Serialize};
 use surrealdb::{Connection, Surreal};
-use crate::query::paginate_query;
 
 pub struct QueryBuilder {
     select: String,

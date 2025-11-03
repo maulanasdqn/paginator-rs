@@ -32,17 +32,17 @@ pub fn parse_filter(filter_str: &str) -> Option<Filter> {
         FilterOperator::In | FilterOperator::NotIn => {
             let values: Vec<FilterValue> = value_str
                 .split(',')
-                .filter_map(|v| {
+                .map(|v| {
                     let trimmed = v.trim();
 
                     if let Ok(i) = trimmed.parse::<i64>() {
-                        Some(FilterValue::Int(i))
+                        FilterValue::Int(i)
                     } else if let Ok(f) = trimmed.parse::<f64>() {
-                        Some(FilterValue::Float(f))
+                        FilterValue::Float(f)
                     } else if trimmed == "true" || trimmed == "false" {
-                        Some(FilterValue::Bool(trimmed == "true"))
+                        FilterValue::Bool(trimmed == "true")
                     } else {
-                        Some(FilterValue::String(trimmed.to_string()))
+                        FilterValue::String(trimmed.to_string())
                     }
                 })
                 .collect();
@@ -51,14 +51,14 @@ pub fn parse_filter(filter_str: &str) -> Option<Filter> {
         FilterOperator::Between => {
             let values: Vec<FilterValue> = value_str
                 .split(',')
-                .filter_map(|v| {
+                .map(|v| {
                     let trimmed = v.trim();
                     if let Ok(i) = trimmed.parse::<i64>() {
-                        Some(FilterValue::Int(i))
+                        FilterValue::Int(i)
                     } else if let Ok(f) = trimmed.parse::<f64>() {
-                        Some(FilterValue::Float(f))
+                        FilterValue::Float(f)
                     } else {
-                        Some(FilterValue::String(trimmed.to_string()))
+                        FilterValue::String(trimmed.to_string())
                     }
                 })
                 .collect();

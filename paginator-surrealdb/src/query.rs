@@ -1,4 +1,7 @@
-use paginator_rs::{CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse, PaginatorResponseMeta};
+use paginator_rs::{
+    CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse,
+    PaginatorResponseMeta,
+};
 use serde::{de::DeserializeOwned, Serialize};
 use surrealdb::{Connection, Surreal};
 
@@ -85,9 +88,15 @@ where
 
         let query_upper = paginated_query.to_uppercase();
         if query_upper.contains(" WHERE ") {
-            paginated_query.push_str(&format!(" AND {} {} {}", cursor.field, operator, cursor_value));
+            paginated_query.push_str(&format!(
+                " AND {} {} {}",
+                cursor.field, operator, cursor_value
+            ));
         } else {
-            paginated_query.push_str(&format!(" WHERE {} {} {}", cursor.field, operator, cursor_value));
+            paginated_query.push_str(&format!(
+                " WHERE {} {} {}",
+                cursor.field, operator, cursor_value
+            ));
         }
     }
 
@@ -136,8 +145,5 @@ where
         PaginatorResponseMeta::new_without_total(params.page, params.per_page, has_next)
     };
 
-    Ok(PaginatorResponse {
-        data,
-        meta,
-    })
+    Ok(PaginatorResponse { data, meta })
 }

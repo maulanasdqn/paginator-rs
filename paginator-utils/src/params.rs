@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
+use crate::cursor::Cursor;
 use crate::filter::Filter;
 use crate::search::SearchParams;
-use crate::cursor::Cursor;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -43,7 +43,7 @@ impl PaginationParams {
     pub fn new(page: u32, per_page: u32) -> Self {
         Self {
             page: page.max(1),
-            per_page: per_page.max(1).min(100),
+            per_page: per_page.clamp(1, 100),
             sort_by: None,
             sort_direction: None,
             filters: Vec::new(),

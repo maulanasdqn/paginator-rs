@@ -34,7 +34,7 @@ impl<'r> FromRequest<'r> for Pagination {
                     }
                     "per_page" => {
                         if let Ok(pp) = value.parse::<u32>() {
-                            per_page = pp.max(1).min(100);
+                            per_page = pp.clamp(1, 100);
                         }
                     }
                     "sort_by" => {
@@ -99,16 +99,10 @@ where
         let mut response = json.respond_to(req)?;
 
         if let Some(total) = self.response.meta.total {
-            response.set_header(Header::new(
-                "X-Total-Count",
-                total.to_string(),
-            ));
+            response.set_header(Header::new("X-Total-Count", total.to_string()));
         }
         if let Some(total_pages) = self.response.meta.total_pages {
-            response.set_header(Header::new(
-                "X-Total-Pages",
-                total_pages.to_string(),
-            ));
+            response.set_header(Header::new("X-Total-Pages", total_pages.to_string()));
         }
         response.set_header(Header::new(
             "X-Current-Page",
