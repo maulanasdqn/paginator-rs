@@ -1,10 +1,13 @@
-use paginator_rs::{CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse, PaginatorResponseMeta};
+use crate::common::{PaginateQuery, PaginatedQuery};
+use crate::query_builder::QueryBuilderExt;
+use paginator_rs::{
+    CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse,
+    PaginatorResponseMeta,
+};
 use serde::Serialize;
 use sqlx::mysql::{MySqlArguments, MySqlRow};
-use sqlx::{query::Query, Executor, FromRow, MySql};
 use sqlx::query_builder::QueryBuilder;
-use crate::common::{PaginatedQuery, PaginateQuery};
-use crate::query_builder::QueryBuilderExt;
+use sqlx::{query::Query, Executor, FromRow, MySql};
 
 impl<'q, T> PaginateQuery<'q, MySql, T> for Query<'q, MySql, MySqlArguments>
 where

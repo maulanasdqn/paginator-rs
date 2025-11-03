@@ -1,7 +1,7 @@
+use crate::error::{PaginatorError, PaginatorResult};
+use paginator_utils::{PaginationParams, PaginatorResponse, PaginatorResponseMeta};
 use serde::Serialize;
 use serde_json::{to_value, Value};
-use paginator_utils::{PaginationParams, PaginatorResponse, PaginatorResponseMeta};
-use crate::error::{PaginatorError, PaginatorResult};
 
 pub trait PaginatorTrait<T>
 where

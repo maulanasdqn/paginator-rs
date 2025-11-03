@@ -1,6 +1,6 @@
 use paginator_rs::{
-    CursorDirection, CursorValue, FilterOperator, FilterValue, PaginationParams, PaginatorError, PaginatorResponse,
-    PaginatorResponseMeta,
+    CursorDirection, CursorValue, FilterOperator, FilterValue, PaginationParams, PaginatorError,
+    PaginatorResponse, PaginatorResponseMeta,
 };
 use sea_orm::{
     sea_query::{Alias, Condition, Expr, SimpleExpr},
@@ -61,7 +61,7 @@ fn build_filter_condition(params: &PaginationParams) -> Condition {
             (FilterOperator::Lte, value) => col.lte(filter_value_to_sea_value(value)),
             (FilterOperator::Like, FilterValue::String(pattern)) => col.like(pattern.clone()),
             (FilterOperator::ILike, FilterValue::String(pattern)) => {
-                Expr::expr(Expr::cust(&format!("LOWER({})", filter.field)))
+                Expr::expr(Expr::cust(format!("LOWER({})", filter.field)))
                     .like(pattern.to_lowercase())
             }
             (FilterOperator::In, FilterValue::Array(values)) => {
@@ -104,7 +104,7 @@ fn build_filter_condition(params: &PaginationParams) -> Condition {
             let search_expr = if search.case_sensitive {
                 col.like(pattern)
             } else {
-                Expr::expr(Expr::cust(&format!("LOWER({})", field))).like(pattern.to_lowercase())
+                Expr::expr(Expr::cust(format!("LOWER({})", field))).like(pattern.to_lowercase())
             };
 
             search_condition = search_condition.add(search_expr);
@@ -191,16 +191,13 @@ where
             PaginatorResponseMeta::new_without_total(params.page, params.per_page, has_next)
         };
 
-        Ok(PaginatorResponse {
-            data,
-            meta,
-        })
+        Ok(PaginatorResponse { data, meta })
     }
 }
 
-pub async fn paginate<'db, C, E>(
+pub async fn paginate<C, E>(
     select: Select<E>,
-    db: &'db C,
+    db: &C,
     params: &PaginationParams,
 ) -> Result<PaginatorResponse<<E as EntityTrait>::Model>, PaginatorError>
 where
@@ -211,9 +208,9 @@ where
     select.paginate_with(db, params).await
 }
 
-pub async fn paginate_with_sort<'db, C, E, F>(
+pub async fn paginate_with_sort<C, E, F>(
     select: Select<E>,
-    db: &'db C,
+    db: &C,
     params: &PaginationParams,
     sort_fn: F,
 ) -> Result<PaginatorResponse<<E as EntityTrait>::Model>, PaginatorError>

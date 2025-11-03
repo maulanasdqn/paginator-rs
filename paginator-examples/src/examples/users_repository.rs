@@ -21,17 +21,15 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
     fn paginate(&self, params: &PaginationParams) -> PaginatorResult<PaginatorResponse<UsersData>> {
         use paginator_rs::{FilterOperator, FilterValue};
 
-        
         let mut data = self.clone();
 
-        
         for filter in &params.filters {
             data.retain(|user| {
                 let field_value = match filter.field.as_str() {
                     "id" => FilterValue::Int(user.id as i64),
                     "name" => FilterValue::String(user.name.clone()),
                     "email" => FilterValue::String(user.email.clone()),
-                    _ => return true, 
+                    _ => return true,
                 };
 
                 match (&filter.operator, &filter.value) {
@@ -65,7 +63,10 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
                             false
                         }
                     }
-                    (FilterOperator::Like | FilterOperator::ILike, FilterValue::String(pattern)) => {
+                    (
+                        FilterOperator::Like | FilterOperator::ILike,
+                        FilterValue::String(pattern),
+                    ) => {
                         if let FilterValue::String(fv) = field_value {
                             let pattern_clean = pattern.replace('%', "");
                             fv.to_lowercase().contains(&pattern_clean.to_lowercase())
@@ -81,7 +82,9 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
                     }
                     (FilterOperator::Between, FilterValue::Array(values)) => {
                         if values.len() == 2 {
-                            if let (FilterValue::Int(min), FilterValue::Int(max)) = (&values[0], &values[1]) {
+                            if let (FilterValue::Int(min), FilterValue::Int(max)) =
+                                (&values[0], &values[1])
+                            {
                                 if let FilterValue::Int(fv) = field_value {
                                     fv >= *min && fv <= *max
                                 } else {
@@ -94,12 +97,11 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
                             false
                         }
                     }
-                    _ => true, 
+                    _ => true,
                 }
             });
         }
 
-        
         if let Some(ref search) = params.search {
             data.retain(|user| {
                 let search_query = if search.case_sensitive {
@@ -136,7 +138,6 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
 
         let total = data.len() as u32;
 
-        
         if let Some(ref field) = params.sort_by {
             let direction = params
                 .sort_direction
@@ -171,15 +172,13 @@ impl PaginatorTrait<UsersData> for Vec<UsersData> {
                         }
                     });
                 }
-                _ => {} 
+                _ => {}
             }
         }
 
-        
         let offset = params.offset() as usize;
         let limit = params.limit() as usize;
 
-        
         let end = (offset + limit).min(data.len());
         let paginated_data = if offset < data.len() {
             data[offset..end].to_vec()

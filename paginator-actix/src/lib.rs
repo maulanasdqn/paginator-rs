@@ -32,7 +32,7 @@ impl PaginationQuery {
 
         PaginationParams {
             page: self.page.max(1),
-            per_page: self.per_page.max(1).min(100),
+            per_page: self.per_page.clamp(1, 100),
             sort_by: self.sort_by,
             sort_direction,
             filters: Vec::new(),
@@ -54,7 +54,7 @@ impl PaginationQuery {
 
         PaginationParams {
             page: self.page.max(1),
-            per_page: self.per_page.max(1).min(100),
+            per_page: self.per_page.clamp(1, 100),
             sort_by: self.sort_by.clone(),
             sort_direction,
             filters: Vec::new(),

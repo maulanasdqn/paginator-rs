@@ -1,3 +1,4 @@
+use crate::parser::parse_filter;
 use axum::{
     async_trait,
     extract::{FromRequestParts, Query},
@@ -5,7 +6,6 @@ use axum::{
 };
 use paginator_rs::{Filter, PaginationParams, SearchParams, SortDirection};
 use serde::Deserialize;
-use crate::parser::parse_filter;
 
 #[derive(Debug, Clone)]
 pub struct PaginationQuery(pub PaginationParams);
@@ -85,7 +85,7 @@ where
 
         Ok(PaginationQuery(PaginationParams {
             page: params.page.max(1),
-            per_page: params.per_page.max(1).min(100),
+            per_page: params.per_page.clamp(1, 100),
             sort_by: params.sort_by,
             sort_direction,
             filters,
