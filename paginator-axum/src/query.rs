@@ -1,28 +1,27 @@
 use crate::parser::parse_filter;
 use axum::{
-    async_trait,
     extract::{FromRequestParts, Query},
     http::{request::Parts, StatusCode},
 };
 use paginator_rs::{Filter, PaginationParams, SearchParams, SortDirection};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct PaginationQuery(pub PaginationParams);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaginationQueryParams {
     #[serde(default = "default_page")]
-    page: u32,
+    pub page: u32,
     #[serde(default = "default_per_page")]
-    per_page: u32,
-    sort_by: Option<String>,
+    pub per_page: u32,
+    pub sort_by: Option<String>,
     #[serde(default)]
-    sort_direction: Option<String>,
+    pub sort_direction: Option<String>,
     #[serde(default)]
-    filter: Vec<String>,
-    search: Option<String>,
-    search_fields: Option<String>,
+    pub filter: Vec<String>,
+    pub search: Option<String>,
+    pub search_fields: Option<String>,
 }
 
 fn default_page() -> u32 {
@@ -33,7 +32,6 @@ fn default_per_page() -> u32 {
     20
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for PaginationQuery
 where
     S: Send + Sync,
