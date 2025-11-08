@@ -12,16 +12,16 @@ pub struct PaginationQuery(pub PaginationParams);
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PaginationQueryParams {
     #[serde(default = "default_page")]
-    page: u32,
+    pub page: u32,
     #[serde(default = "default_per_page")]
-    per_page: u32,
-    sort_by: Option<String>,
+    pub per_page: u32,
+    pub sort_by: Option<String>,
     #[serde(default)]
-    sort_direction: Option<String>,
+    pub sort_direction: Option<String>,
     #[serde(default)]
-    filter: Vec<String>,
-    search: Option<String>,
-    search_fields: Option<String>,
+    pub filter: Vec<String>,
+    pub search: Option<String>,
+    pub search_fields: Option<String>,
 }
 
 fn default_page() -> u32 {
