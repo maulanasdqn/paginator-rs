@@ -4,12 +4,12 @@ use axum::{
     http::{request::Parts, StatusCode},
 };
 use paginator_rs::{Filter, PaginationParams, SearchParams, SortDirection};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct PaginationQuery(pub PaginationParams);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaginationQueryParams {
     #[serde(default = "default_page")]
     page: u32,
