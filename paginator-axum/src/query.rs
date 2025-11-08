@@ -1,6 +1,5 @@
 use crate::parser::parse_filter;
 use axum::{
-    async_trait,
     extract::{FromRequestParts, Query},
     http::{request::Parts, StatusCode},
 };
@@ -33,7 +32,6 @@ fn default_per_page() -> u32 {
     20
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for PaginationQuery
 where
     S: Send + Sync,
