@@ -4,6 +4,7 @@ use paginator_rs::{
     CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse,
     PaginatorResponseMeta,
 };
+use paginator_utils::IntoPaginationParams;
 use serde::Serialize;
 use sqlx::postgres::{PgArguments, PgRow};
 use sqlx::query_builder::QueryBuilder;
@@ -22,15 +23,17 @@ fn is_cte_query(query: &str) -> bool {
     query.trim().to_uppercase().starts_with("WITH")
 }
 
-pub async fn paginate_query<'e, E, T>(
+pub async fn paginate_query<'e, E, T, P>(
     executor: E,
     base_query: &str,
-    params: &PaginationParams,
+    params: P,
 ) -> Result<PaginatorResponse<T>, PaginatorError>
 where
     E: Executor<'e, Database = Postgres> + Clone,
     T: for<'r> FromRow<'r, PgRow> + Send + Unpin + Serialize,
+    P: IntoPaginationParams,
 {
+    let params = params.into_pagination_params();
     let has_filters_or_search = !params.filters.is_empty() || params.search.is_some();
 
     let count_query_str = if is_cte_query(base_query) {
