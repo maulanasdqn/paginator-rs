@@ -1,5 +1,5 @@
-use paginator_rs::{Paginator, FilterBuilder, SearchBuilder, CursorBuilder};
-use paginator_utils::{FilterValue, CursorValue, PaginationParams, IntoPaginationParams};
+use paginator_rs::{CursorBuilder, FilterBuilder, Paginator, SearchBuilder};
+use paginator_utils::{CursorValue, FilterValue, IntoPaginationParams, PaginationParams};
 
 fn main() {
     println!("=== NEW FLUENT BUILDER API ===");
@@ -8,21 +8,22 @@ fn main() {
     let params = Paginator::new()
         .page(1)
         .per_page(20)
-        .sort().asc("created_at")
+        .sort()
+        .asc("created_at")
         .filter()
-            .eq("status", FilterValue::String("active".to_string()))
-            .gte("age", FilterValue::Int(18))
-            .like("name", "%john%")
-            .apply()
+        .eq("status", FilterValue::String("active".to_string()))
+        .gte("age", FilterValue::Int(18))
+        .like("name", "%john%")
+        .apply()
         .search()
-            .query("test query")
-            .fields(["name", "email"])
-            .exact(false)
-            .case_sensitive(false)
-            .apply()
+        .query("test query")
+        .fields(["name", "email"])
+        .exact(false)
+        .case_sensitive(false)
+        .apply()
         .cursor()
-            .after("id", CursorValue::Int(150))
-            .apply()
+        .after("id", CursorValue::Int(150))
+        .apply()
         .disable_total_count()
         .build();
 
@@ -32,11 +33,7 @@ fn main() {
     let standalone_filters = FilterBuilder::new()
         .eq("status", FilterValue::String("active".to_string()))
         .gte("score", FilterValue::Int(100))
-        .between(
-            "price",
-            FilterValue::Float(10.0),
-            FilterValue::Float(100.0)
-        )
+        .between("price", FilterValue::Float(10.0), FilterValue::Float(100.0))
         .build();
 
     println!("✅ Standalone filters: {:?}", standalone_filters);
@@ -71,11 +68,11 @@ fn main() {
     // 6. Multiple filter usage
     let multiple_filters = Paginator::new()
         .filter()
-            .eq("type", FilterValue::String("user".to_string()))
-            .apply()
+        .eq("type", FilterValue::String("user".to_string()))
+        .apply()
         .filter()
-            .gte("created_at", FilterValue::String("2023-01-01".to_string()))
-            .apply()
+        .gte("created_at", FilterValue::String("2023-01-01".to_string()))
+        .apply()
         .build();
 
     println!("✅ Multiple filters: {:?}", multiple_filters);
@@ -83,10 +80,7 @@ fn main() {
     println!("\n=== DIRECT BUILDERS USAGE (FOR paginate_query) ===");
 
     // Mock function to simulate how paginate_query now accepts builders directly
-    fn mock_paginate_query<P: IntoPaginationParams>(
-        query: &str,
-        params: P,
-    ) -> PaginationParams {
+    fn mock_paginate_query<P: IntoPaginationParams>(query: &str, params: P) -> PaginationParams {
         let pagination_params = params.into_pagination_params();
         println!("Query: {}", query);
         println!("Converted params: {:?}", pagination_params);
@@ -99,10 +93,7 @@ fn main() {
         .gte("age", FilterValue::Int(18))
         .like("name", "%john%");
 
-    let _result = mock_paginate_query(
-        "SELECT * FROM users",
-        filter_only
-    );
+    let _result = mock_paginate_query("SELECT * FROM users", filter_only);
     println!("✅ FilterBuilder used directly in paginate_query");
 
     // 8. Using SearchBuilder directly
@@ -111,35 +102,26 @@ fn main() {
         .fields(["name", "email"])
         .case_sensitive(false);
 
-    let _result = mock_paginate_query(
-        "SELECT * FROM users",
-        search_only
-    );
+    let _result = mock_paginate_query("SELECT * FROM users", search_only);
     println!("✅ SearchBuilder used directly in paginate_query");
 
     // 9. Using CursorBuilder directly
-    let cursor_only = CursorBuilder::new()
-        .after("id", CursorValue::Int(100));
+    let cursor_only = CursorBuilder::new().after("id", CursorValue::Int(100));
 
-    let _result = mock_paginate_query(
-        "SELECT * FROM users",
-        cursor_only
-    );
+    let _result = mock_paginate_query("SELECT * FROM users", cursor_only);
     println!("✅ CursorBuilder used directly in paginate_query");
 
     // 10. Using full Paginator (fluent API) directly
     let full_paginator = Paginator::new()
         .page(2)
         .per_page(15)
-        .sort().desc("created_at")
+        .sort()
+        .desc("created_at")
         .filter()
-            .eq("active", FilterValue::Bool(true))
-            .apply();
+        .eq("active", FilterValue::Bool(true))
+        .apply();
 
-    let _result = mock_paginate_query(
-        "SELECT * FROM users",
-        full_paginator
-    );
+    let _result = mock_paginate_query("SELECT * FROM users", full_paginator);
     println!("✅ Full Paginator used directly in paginate_query");
 
     // 11. Traditional PaginationParams still works
@@ -149,10 +131,7 @@ fn main() {
         ..Default::default()
     };
 
-    let _result = mock_paginate_query(
-        "SELECT * FROM users",
-        &traditional_params
-    );
+    let _result = mock_paginate_query("SELECT * FROM users", &traditional_params);
     println!("✅ Traditional PaginationParams still works");
 
     println!("\n=== EVERYTHING WORKING! ===");

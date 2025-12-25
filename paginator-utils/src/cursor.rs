@@ -21,6 +21,8 @@ pub enum CursorValue {
     String(String),
     Int(i64),
     Float(f64),
+    /// UUID value stored as string, will be cast to UUID in SQL
+    Uuid(String),
 }
 
 impl Cursor {

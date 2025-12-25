@@ -1,6 +1,6 @@
 use paginator_utils::{
-    Cursor, CursorDirection, CursorValue, Filter, FilterOperator, FilterValue, PaginationParams,
-    SearchParams, SortDirection, IntoPaginationParams,
+    Cursor, CursorDirection, CursorValue, Filter, FilterOperator, FilterValue,
+    IntoPaginationParams, PaginationParams, SearchParams, SortDirection,
 };
 use std::marker::PhantomData;
 
@@ -192,7 +192,11 @@ impl<P> FilterBuilder<P> {
     }
 
     pub fn ilike(self, field: impl Into<String>, pat: impl Into<String>) -> Self {
-        self.push(field, FilterOperator::ILike, FilterValue::String(pat.into()))
+        self.push(
+            field,
+            FilterOperator::ILike,
+            FilterValue::String(pat.into()),
+        )
     }
 
     pub fn r#in(self, field: impl Into<String>, values: Vec<FilterValue>) -> Self {
@@ -204,7 +208,11 @@ impl<P> FilterBuilder<P> {
     }
 
     pub fn between(self, field: impl Into<String>, min: FilterValue, max: FilterValue) -> Self {
-        self.push(field, FilterOperator::Between, FilterValue::Array(vec![min, max]))
+        self.push(
+            field,
+            FilterOperator::Between,
+            FilterValue::Array(vec![min, max]),
+        )
     }
 
     pub fn is_null(self, field: impl Into<String>) -> Self {
@@ -219,12 +227,21 @@ impl<P> FilterBuilder<P> {
         self.push(field, FilterOperator::Contains, value)
     }
 
-    /// Finish and return to parent
+    /// Finish and return to parent.
+    ///
+    /// Note: This method is only callable when the builder was created via a fluent chain
+    /// (e.g., `Paginator::new().filter()`), not when created standalone via `FilterBuilder::new()`.
+    /// The trait bound `P: HasParams` ensures this at compile time.
     pub fn apply(self) -> P
     where
         P: HasParams,
     {
-        let mut parent = self.parent.expect("FilterBuilder::apply called without a parent");
+        // SAFETY: When P: HasParams, the builder must have been created via `with_parent`,
+        // which always sets parent to Some. Standalone builders (FilterBuilder<()>) cannot
+        // call this method because () does not implement HasParams.
+        let mut parent = self.parent.unwrap_or_else(|| {
+            panic!("BUG: FilterBuilder::apply called without a parent. This should be prevented by type system.")
+        });
         parent.params_mut().filters.extend(self.filters);
         parent
     }
@@ -304,16 +321,30 @@ impl<P> SearchBuilder<P> {
         self
     }
 
+    /// Finish and return to parent.
+    ///
+    /// Note: This method is only callable when the builder was created via a fluent chain
+    /// (e.g., `Paginator::new().search()`), not when created standalone via `SearchBuilder::new()`.
+    /// The trait bound `P: HasParams` ensures this at compile time.
     pub fn apply(self) -> P
     where
         P: HasParams,
     {
-        let mut parent = self.parent.expect("SearchBuilder::apply called without a parent");
+        // SAFETY: When P: HasParams, the builder must have been created via `with_parent`,
+        // which always sets parent to Some. Standalone builders (SearchBuilder<()>) cannot
+        // call this method because () does not implement HasParams.
+        let mut parent = self.parent.unwrap_or_else(|| {
+            panic!("BUG: SearchBuilder::apply called without a parent. This should be prevented by type system.")
+        });
 
         if let Some(q) = self.query {
             let mut s = SearchParams::new(q, self.fields);
-            if self.exact { s = s.with_exact_match(true); }
-            if self.case_sensitive { s = s.with_case_sensitive(true); }
+            if self.exact {
+                s = s.with_exact_match(true);
+            }
+            if self.case_sensitive {
+                s = s.with_case_sensitive(true);
+            }
             parent.params_mut().search = Some(s);
         }
 
@@ -368,11 +399,21 @@ impl<P> CursorBuilder<P> {
         Ok(self)
     }
 
+    /// Finish and return to parent.
+    ///
+    /// Note: This method is only callable when the builder was created via a fluent chain
+    /// (e.g., `Paginator::new().cursor()`), not when created standalone via `CursorBuilder::new()`.
+    /// The trait bound `P: HasParams` ensures this at compile time.
     pub fn apply(self) -> P
     where
         P: HasParams,
     {
-        let mut parent = self.parent.expect("CursorBuilder::apply called without a parent");
+        // SAFETY: When P: HasParams, the builder must have been created via `with_parent`,
+        // which always sets parent to Some. Standalone builders (CursorBuilder<()>) cannot
+        // call this method because () does not implement HasParams.
+        let mut parent = self.parent.unwrap_or_else(|| {
+            panic!("BUG: CursorBuilder::apply called without a parent. This should be prevented by type system.")
+        });
         if let Some(cursor) = self.cursor {
             parent.params_mut().cursor = Some(cursor);
         }

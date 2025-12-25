@@ -25,6 +25,15 @@ fn cursor_value_to_sea_value(value: &CursorValue) -> sea_orm::sea_query::Value {
         CursorValue::String(s) => s.clone().into(),
         CursorValue::Int(i) => (*i).into(),
         CursorValue::Float(f) => (*f).into(),
+        // Parse UUID string and convert to sea-orm UUID value
+        CursorValue::Uuid(u) => {
+            if let Ok(parsed) = uuid::Uuid::parse_str(u) {
+                sea_orm::sea_query::Value::Uuid(Some(Box::new(parsed)))
+            } else {
+                // Fallback to string if parsing fails
+                u.clone().into()
+            }
+        }
     }
 }
 

@@ -1,9 +1,16 @@
+use crate::validate_field_name;
 use paginator_rs::{
     CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse,
     PaginatorResponseMeta,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use surrealdb::{Connection, Surreal};
+
+/// Safely escapes a string value for use in SurrealQL queries.
+/// This replaces single quotes and backslashes to prevent injection.
+fn escape_string_value(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('\'', "\\'")
+}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct CountResult {
@@ -69,6 +76,9 @@ where
     }
 
     if let Some(ref cursor) = params.cursor {
+        // Validate cursor field name to prevent injection
+        validate_field_name(&cursor.field)?;
+
         let operator = match cursor.direction {
             CursorDirection::After => match params.sort_direction.as_ref() {
                 Some(paginator_rs::SortDirection::Desc) => "<",
@@ -81,9 +91,10 @@ where
         };
 
         let cursor_value = match &cursor.value {
-            CursorValue::String(s) => format!("'{}'", s.replace('\'', "\\'")),
+            CursorValue::String(s) => format!("'{}'", escape_string_value(s)),
             CursorValue::Int(i) => i.to_string(),
             CursorValue::Float(f) => f.to_string(),
+            CursorValue::Uuid(u) => format!("<uuid> '{}'", escape_string_value(u)),
         };
 
         let query_upper = paginated_query.to_uppercase();
@@ -101,6 +112,9 @@ where
     }
 
     if let Some(ref sort_field) = params.sort_by {
+        // Validate sort field name to prevent injection
+        validate_field_name(sort_field)?;
+
         let direction = match params.sort_direction.as_ref() {
             Some(paginator_rs::SortDirection::Desc) => "DESC",
             _ => "ASC",

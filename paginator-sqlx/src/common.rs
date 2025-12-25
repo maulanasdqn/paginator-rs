@@ -3,6 +3,28 @@ use serde::Serialize;
 use sqlx::{Database, Executor, FromRow};
 use std::marker::PhantomData;
 
+/// Validates that a field name is safe for use in SQL queries.
+/// Only allows alphanumeric characters, underscores, and dots (for qualified names).
+/// Returns an error if the field name contains potentially dangerous characters.
+pub fn validate_field_name(field: &str) -> Result<(), PaginatorError> {
+    if field.is_empty() {
+        return Err(PaginatorError::Custom(
+            "Field name cannot be empty".to_string(),
+        ));
+    }
+
+    for c in field.chars() {
+        if !c.is_alphanumeric() && c != '_' && c != '.' {
+            return Err(PaginatorError::Custom(format!(
+                "Invalid field name '{}': contains unsafe character '{}'",
+                field, c
+            )));
+        }
+    }
+
+    Ok(())
+}
+
 pub trait PaginateQuery<'q, DB: Database, T>
 where
     T: Send + Unpin,

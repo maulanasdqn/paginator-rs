@@ -1,4 +1,4 @@
-use crate::common::{PaginateQuery, PaginatedQuery};
+use crate::common::{validate_field_name, PaginateQuery, PaginatedQuery};
 use crate::query_builder::QueryBuilderExt;
 use paginator_rs::{
     CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse,
@@ -59,8 +59,8 @@ where
     } else {
         let count = if has_filters_or_search {
             let mut count_builder: QueryBuilder<Postgres> = QueryBuilder::new(&count_query_str);
-            count_builder.push_filters(params);
-            count_builder.push_search(params);
+            count_builder.push_filters(&params);
+            count_builder.push_search(&params);
 
             if is_cte_query(base_query) {
                 count_builder.push(") SELECT COUNT(*) FROM _paginator_filtered");
@@ -103,8 +103,8 @@ where
     let mut data_builder: QueryBuilder<Postgres> = QueryBuilder::new(&data_query_str);
 
     if has_filters_or_search {
-        data_builder.push_filters(params);
-        data_builder.push_search(params);
+        data_builder.push_filters(&params);
+        data_builder.push_search(&params);
 
         if is_cte_query(base_query) {
             data_builder.push(") SELECT * FROM _paginator_filtered");
@@ -112,6 +112,9 @@ where
     }
 
     if let Some(ref cursor) = params.cursor {
+        // Validate cursor field name to prevent SQL injection
+        validate_field_name(&cursor.field)?;
+
         let operator = match cursor.direction {
             CursorDirection::After => match params.sort_direction.as_ref() {
                 Some(paginator_rs::SortDirection::Desc) => "<",
@@ -144,10 +147,17 @@ where
             CursorValue::Float(f) => {
                 data_builder.push_bind(*f);
             }
+            CursorValue::Uuid(u) => {
+                data_builder.push_bind(u.clone());
+                data_builder.push("::uuid");
+            }
         }
     }
 
     if let Some(ref sort_field) = params.sort_by {
+        // Validate sort field name to prevent SQL injection
+        validate_field_name(sort_field)?;
+
         data_builder.push(" ORDER BY ");
         data_builder.push(sort_field);
         match params.sort_direction.as_ref() {
@@ -159,6 +169,12 @@ where
     if params.cursor.is_some() {
         data_builder.push(" LIMIT ");
         data_builder.push_bind((params.limit() + 1) as i64);
+    } else if params.disable_total_count {
+        // Fetch one extra row to detect if there's a next page
+        data_builder.push(" LIMIT ");
+        data_builder.push_bind((params.limit() + 1) as i64);
+        data_builder.push(" OFFSET ");
+        data_builder.push_bind(params.offset() as i64);
     } else {
         data_builder.push(" LIMIT ");
         data_builder.push_bind(params.limit() as i64);
@@ -188,7 +204,11 @@ where
     } else if let Some(count) = total {
         PaginatorResponseMeta::new(params.page, params.per_page, count as u32)
     } else {
-        let has_next = data.len() as u32 > params.per_page;
+        // disable_total_count is true - we fetched one extra row to detect next page
+        let has_next = data.len() > params.per_page as usize;
+        if has_next {
+            data.truncate(params.per_page as usize);
+        }
         PaginatorResponseMeta::new_without_total(params.page, params.per_page, has_next)
     };
 
