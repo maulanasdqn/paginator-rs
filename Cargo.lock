@@ -3314,7 +3314,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-actix"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "actix-web",
  "futures-util",
@@ -3327,7 +3327,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-axum"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -3351,7 +3351,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-rocket"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "paginator-rs",
  "paginator-utils",
@@ -3363,7 +3363,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-rs"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "paginator-utils",
  "serde",
@@ -3372,7 +3372,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-sea-orm"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-trait",
  "paginator-rs",
@@ -3385,7 +3385,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-sqlx"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "paginator-rs",
  "paginator-utils",
@@ -3396,7 +3396,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-surrealdb"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-trait",
  "paginator-rs",
@@ -3409,7 +3409,7 @@ dependencies = [
 
 [[package]]
 name = "paginator-utils"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "base64 0.22.1",
  "serde",

@@ -50,50 +50,50 @@ paginator-rs/
 ### Core Library
 ```toml
 [dependencies]
-paginator-rs = "0.2.1"
-paginator-utils = "0.2.1"
+paginator-rs = "0.2.2"
+paginator-utils = "0.2.2"
 serde = { version = "1", features = ["derive"] }
 ```
 
 ### With SQLx (PostgreSQL)
 ```toml
 [dependencies]
-paginator-sqlx = { version = "0.2.1", features = ["postgres", "runtime-tokio"] }
+paginator-sqlx = { version = "0.2.2", features = ["postgres", "runtime-tokio"] }
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"] }
 ```
 
 ### With SeaORM
 ```toml
 [dependencies]
-paginator-sea-orm = { version = "0.2.1", features = ["sqlx-postgres", "runtime-tokio"] }
+paginator-sea-orm = { version = "0.2.2", features = ["sqlx-postgres", "runtime-tokio"] }
 sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio"] }
 ```
 
 ### With SurrealDB
 ```toml
 [dependencies]
-paginator-surrealdb = { version = "0.2.1", features = ["protocol-ws", "kv-mem"] }
+paginator-surrealdb = { version = "0.2.2", features = ["protocol-ws", "kv-mem"] }
 surrealdb = { version = "2.1", features = ["protocol-ws", "kv-mem"] }
 ```
 
 ### With Axum
 ```toml
 [dependencies]
-paginator-axum = "0.2.1"
+paginator-axum = "0.2.2"
 axum = "0.7"
 ```
 
 ### With Rocket
 ```toml
 [dependencies]
-paginator-rocket = "0.2.1"
+paginator-rocket = "0.2.2"
 rocket = { version = "0.5", features = ["json"] }
 ```
 
 ### With Actix-web
 ```toml
 [dependencies]
-paginator-actix = "0.2.1"
+paginator-actix = "0.2.2"
 actix-web = "4"
 ```
 
