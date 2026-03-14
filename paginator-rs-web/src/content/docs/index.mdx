@@ -1,0 +1,69 @@
+---
+title: paginator-rs
+description: A comprehensive, modular Rust pagination library with support for multiple databases and web frameworks
+template: splash
+hero:
+  tagline: Production-ready pagination for Rust — supporting SQLx, SeaORM, SurrealDB, Axum, Rocket, and Actix-web
+  actions:
+    - text: Get Started
+      link: /getting-started/installation/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/maulanasdqn/paginator-rs
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why paginator-rs?
+
+<CardGrid>
+  <Card title="Fluent builder API" icon="approve-check">
+    Ergonomic builder pattern with chainable sub-builders for sorting, filtering, search, and cursor pagination.
+  </Card>
+  <Card title="Multi-database support" icon="rocket">
+    First-class integrations for SQLx (PostgreSQL, MySQL, SQLite), SeaORM, and SurrealDB.
+  </Card>
+  <Card title="Web framework ready" icon="setting">
+    Drop-in extractors and responders for Axum, Rocket, and Actix-web with automatic pagination headers.
+  </Card>
+  <Card title="Advanced filtering" icon="magnifier">
+    14 filter operators including eq, ne, gt, lt, like, ilike, in, between, is_null, contains, and more.
+  </Card>
+  <Card title="Cursor pagination" icon="forward-slash">
+    Keyset-based pagination for large datasets with consistent results and no offset overhead.
+  </Card>
+  <Card title="SQL injection safe" icon="warning">
+    All database integrations use parameterized queries. Filter values and search terms are never concatenated into SQL.
+  </Card>
+</CardGrid>
+
+## Quick example
+
+```rust
+use paginator_rs::Paginator;
+
+let params = Paginator::new()
+    .page(1)
+    .per_page(20)
+    .sort().desc("created_at")
+    .filter()
+        .eq("status", "active")
+        .gt("age", 18)
+        .apply()
+    .search()
+        .query("developer")
+        .fields(["title", "bio"])
+        .apply()
+    .build();
+
+// Use with SQLx
+let result = paginate_query::<_, User>(
+    &pool,
+    "SELECT * FROM users",
+    &params,
+).await?;
+
+println!("Page {}/{}", result.meta.page, result.meta.total_pages.unwrap());
+```
