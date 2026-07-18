@@ -1,8 +1,9 @@
 use crate::parser::parse_filter;
 use axum::{
-    extract::{FromRequestParts, Query},
+    extract::{FromRequestParts},
     http::{request::Parts, StatusCode},
 };
+use axum_extra::extract::Query;
 use paginator_rs::{Filter, PaginationParams, SearchParams, SortDirection};
 use serde::{Deserialize, Serialize};
 

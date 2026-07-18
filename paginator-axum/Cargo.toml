@@ -19,6 +19,9 @@ axum = { version = "0.8", default-features = false, features = [
     "json",
     "query",
 ] }
+axum-extra = { version = "0.12", default-features = false, features = [
+  "query"
+] }
 async-trait = "0.1"
 http = "1.0"
 
