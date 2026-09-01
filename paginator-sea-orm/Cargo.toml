@@ -1,6 +1,6 @@
 [package]
 name = "paginator-sea-orm"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 authors = ["Maulana Sodiqin <sodiqincahyana1@gmail.com>"]
 description = "SeaORM integration for paginator-rs with entity pagination support"
@@ -11,10 +11,10 @@ keywords = ["pagination", "sea-orm", "database", "orm"]
 categories = ["database"]
 
 [dependencies]
-paginator-rs = { path = "../paginator-rs", version = "0.2.2" }
-paginator-utils = { path = "../paginator-utils", version = "0.2.2" }
+paginator-rs = { path = "../paginator-rs", version = "0.3.0" }
+paginator-utils = { path = "../paginator-utils", version = "0.3.0" }
 serde = { workspace = true }
-sea-orm = { version = "1.1", default-features = false, features = ["with-uuid"] }
+sea-orm = { version = "2.0", default-features = false, features = ["with-uuid"] }
 async-trait = "0.1"
 uuid = "1"
 

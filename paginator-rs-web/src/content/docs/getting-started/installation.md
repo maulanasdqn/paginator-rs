@@ -7,8 +7,8 @@ description: How to install paginator-rs and its integrations
 
 ```toml
 [dependencies]
-paginator-rs = "0.2.2"
-paginator-utils = "0.2.2"
+paginator-rs = "0.3.0"
+paginator-utils = "0.3.0"
 serde = { version = "1", features = ["derive"] }
 ```
 
@@ -18,7 +18,7 @@ serde = { version = "1", features = ["derive"] }
 
 ```toml
 [dependencies]
-paginator-sqlx = { version = "0.2.2", features = ["postgres", "runtime-tokio"] }
+paginator-sqlx = { version = "0.3.0", features = ["postgres", "runtime-tokio"] }
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"] }
 ```
 
@@ -26,7 +26,7 @@ sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"] }
 
 ```toml
 [dependencies]
-paginator-sqlx = { version = "0.2.2", features = ["mysql", "runtime-tokio"] }
+paginator-sqlx = { version = "0.3.0", features = ["mysql", "runtime-tokio"] }
 sqlx = { version = "0.8", features = ["mysql", "runtime-tokio"] }
 ```
 
@@ -34,7 +34,7 @@ sqlx = { version = "0.8", features = ["mysql", "runtime-tokio"] }
 
 ```toml
 [dependencies]
-paginator-sqlx = { version = "0.2.2", features = ["sqlite", "runtime-tokio"] }
+paginator-sqlx = { version = "0.3.0", features = ["sqlite", "runtime-tokio"] }
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 ```
 
@@ -42,15 +42,15 @@ sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio"] }
 
 ```toml
 [dependencies]
-paginator-sea-orm = { version = "0.2.2", features = ["sqlx-postgres", "runtime-tokio"] }
-sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio"] }
+paginator-sea-orm = { version = "0.3.0", features = ["sqlx-postgres", "runtime-tokio"] }
+sea-orm = { version = "2.0", features = ["sqlx-postgres", "runtime-tokio"] }
 ```
 
 ### SurrealDB
 
 ```toml
 [dependencies]
-paginator-surrealdb = { version = "0.2.2", features = ["protocol-ws", "kv-mem"] }
+paginator-surrealdb = { version = "0.3.0", features = ["protocol-ws", "kv-mem"] }
 surrealdb = { version = "2.1", features = ["protocol-ws", "kv-mem"] }
 ```
 
@@ -60,7 +60,7 @@ surrealdb = { version = "2.1", features = ["protocol-ws", "kv-mem"] }
 
 ```toml
 [dependencies]
-paginator-axum = "0.2.2"
+paginator-axum = "0.3.0"
 axum = "0.7"
 ```
 
@@ -68,7 +68,7 @@ axum = "0.7"
 
 ```toml
 [dependencies]
-paginator-rocket = "0.2.2"
+paginator-rocket = "0.3.0"
 rocket = { version = "0.5", features = ["json"] }
 ```
 
@@ -76,7 +76,7 @@ rocket = { version = "0.5", features = ["json"] }
 
 ```toml
 [dependencies]
-paginator-actix = "0.2.2"
+paginator-actix = "0.3.0"
 actix-web = "4"
 ```
 

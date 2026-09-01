@@ -9,7 +9,7 @@ The `paginator-rocket` crate provides request guards and responders for Rocket.
 
 ```toml
 [dependencies]
-paginator-rocket = "0.2.2"
+paginator-rocket = "0.3.0"
 rocket = { version = "0.5", features = ["json"] }
 ```
 

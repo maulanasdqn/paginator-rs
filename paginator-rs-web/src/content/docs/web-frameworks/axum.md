@@ -9,7 +9,7 @@ The `paginator-axum` crate provides query extractors and JSON responders for Axu
 
 ```toml
 [dependencies]
-paginator-axum = "0.2.2"
+paginator-axum = "0.3.0"
 axum = "0.7"
 ```
 

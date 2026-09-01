@@ -3,7 +3,7 @@ use paginator_rs::{
     PaginatorResponse, PaginatorResponseMeta,
 };
 use sea_orm::{
-    sea_query::{Alias, Condition, Expr, SimpleExpr},
+    sea_query::{Alias, Condition, Expr, ExprTrait, SimpleExpr},
     ConnectionTrait, EntityTrait, PaginatorTrait as SeaPaginatorTrait, QueryFilter, QuerySelect,
     Select,
 };
@@ -28,7 +28,7 @@ fn cursor_value_to_sea_value(value: &CursorValue) -> sea_orm::sea_query::Value {
         // Parse UUID string and convert to sea-orm UUID value
         CursorValue::Uuid(u) => {
             if let Ok(parsed) = uuid::Uuid::parse_str(u) {
-                sea_orm::sea_query::Value::Uuid(Some(Box::new(parsed)))
+                sea_orm::sea_query::Value::Uuid(Some(parsed))
             } else {
                 // Fallback to string if parsing fails
                 u.clone().into()
