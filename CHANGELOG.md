@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `paginator-axum`: the `filter=field:op:value` query parameter never worked — axum's
+- `paginator-axum`: the `filter=field:op:value` query parameter never worked. Axum's
   `Query` extractor (serde_urlencoded) cannot collect repeated `filter=` keys into a
   `Vec`, so filtered requests returned 400. The extractor now parses the query string
   directly with `form_urlencoded`; single and repeated filters both work.
