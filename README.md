@@ -23,6 +23,7 @@ Modular Rust pagination library with database and web framework integrations.
 | `paginator-axum` | Axum extractors and responses |
 | `paginator-rocket` | Rocket guards and responders |
 | `paginator-actix` | Actix-web extractors and responders |
+| `paginator-zod` | [zod-rs](https://github.com/maulanasdqn/zod-rs) validation of pagination input and TypeScript response schemas |
 
 ## Installation
 
@@ -115,6 +116,41 @@ cargo run -p paginator-examples --bin surrealdb_mem   # SurrealDB (in-memory eng
 cargo run -p paginator-examples --bin axum_server     # Axum HTTP server
 cargo run -p paginator-examples --bin actix_server    # Actix-web HTTP server
 cargo run -p paginator-examples --bin rocket_server   # Rocket HTTP server
+cargo run -p paginator-zod --example validate_and_codegen  # zod-rs input validation + TS codegen
+```
+
+### Validating input with zod-rs
+
+`paginator-zod` validates raw pagination query JSON against a [zod-rs](https://github.com/maulanasdqn/zod-rs) schema before it becomes `PaginationParams`, with path-aware, localizable errors. It enforces `per_page` bounds and, optionally, allow-lists for sort and filter fields.
+
+```rust
+use paginator_zod::PaginationSchema;
+use serde_json::json;
+
+let schema = PaginationSchema::new()
+    .max_per_page(100)
+    .allowed_sort_fields(["name", "created_at"])
+    .allowed_filter_fields(["status", "age"]);
+
+// Ok -> PaginationParams, ready to paginate
+let params = schema.validate(&json!({
+    "page": 1,
+    "per_page": 20,
+    "sort_by": "created_at",
+    "sort_direction": "desc",
+    "filters": [{ "field": "status", "operator": "eq", "value": "active" }]
+}))?;
+
+// Err -> "per_page: Too big: expected number to have <= 100"
+schema.validate(&json!({ "per_page": 500 })).unwrap_err();
+```
+
+It also emits a Zod schema for the response envelope so frontends get typed, validated responses:
+
+```rust
+println!("{}", paginator_zod::typescript::response_module_ts());
+// export const paginated = <T extends z.ZodTypeAny>(item: T) =>
+//   z.object({ data: z.array(item), meta: PaginationMetaSchema });
 ```
 
 ## Response format

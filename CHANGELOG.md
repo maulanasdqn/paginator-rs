@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `paginator-zod`: integration with [zod-rs](https://github.com/maulanasdqn/zod-rs).
+  `PaginationSchema` validates raw pagination query JSON against a zod-rs schema and
+  produces a normalized `PaginationParams`, with path-aware, localizable errors,
+  `per_page` bounds, and optional allow-lists for sort and filter fields. The
+  `typescript` module emits a Zod schema for the response envelope so frontends get
+  typed, validated pagination responses.
+
 ## [0.3.1] - 2026-09-02
 
 ### Fixed

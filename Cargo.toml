@@ -10,6 +10,7 @@ members = [
     "paginator-axum",
     "paginator-rocket",
     "paginator-actix",
+    "paginator-zod",
 ]
 
 [workspace.dependencies]
