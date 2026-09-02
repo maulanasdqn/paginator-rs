@@ -13,8 +13,8 @@ categories = ["web-programming", "data-structures"]
 [dependencies]
 paginator-rs = { path = "../paginator-rs", version = "0.3.1" }
 paginator-utils = { path = "../paginator-utils", version = "0.3.1" }
-zod-rs = { path = "../../zod-rs/zod-rs", version = "1.1" }
-zod-rs-util = { path = "../../zod-rs/zod-rs-util", version = "1.1" }
+zod-rs = "1.1"
+zod-rs-util = "1.1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 

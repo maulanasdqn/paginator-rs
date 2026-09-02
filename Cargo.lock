@@ -7540,6 +7540,8 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 [[package]]
 name = "zod-rs"
 version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7aa06d2b4e1e74071e3b6fd0a46ebe1a920058d563ac250402f2b9ae4deef13e"
 dependencies = [
  "regex",
  "serde",
@@ -7551,6 +7553,8 @@ dependencies = [
 [[package]]
 name = "zod-rs-macros"
 version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ff9a2a83c2d8915d89e09560f0e2e8ab7a62481228e95591a90da507b73bb06"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7561,6 +7565,8 @@ dependencies = [
 [[package]]
 name = "zod-rs-util"
 version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a829eca9a5042e57b3fae381bb0c4fdac055fe351ddf9e0d344fe10bbee1aaa1"
 dependencies = [
  "serde_json",
 ]
