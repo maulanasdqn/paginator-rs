@@ -100,7 +100,7 @@ impl<P> SortBuilder<P> {
         Self { parent }
     }
 
-    pub fn asc(mut self, field: impl Into<String>) -> P
+    pub fn asc(self, field: impl Into<String>) -> P
     where
         P: HasParams,
     {
@@ -110,7 +110,7 @@ impl<P> SortBuilder<P> {
         p
     }
 
-    pub fn desc(mut self, field: impl Into<String>) -> P
+    pub fn desc(self, field: impl Into<String>) -> P
     where
         P: HasParams,
     {
