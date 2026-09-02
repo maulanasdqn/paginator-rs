@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-09-02
+
+### Fixed
+
+- `paginator-axum`: the `filter=field:op:value` query parameter never worked — axum's
+  `Query` extractor (serde_urlencoded) cannot collect repeated `filter=` keys into a
+  `Vec`, so filtered requests returned 400. The extractor now parses the query string
+  directly with `form_urlencoded`; single and repeated filters both work.
+
+### Added
+
+- Complete example suite in `paginator-examples`: core features (basic, builders,
+  filters, search, cursors, errors), in-memory database examples (SQLx/SQLite,
+  SeaORM 2.0/SQLite, SurrealDB), and web server examples (Axum, Actix-web, Rocket).
+
 ## [0.3.0] - 2026-09-01
 
 ### Changed

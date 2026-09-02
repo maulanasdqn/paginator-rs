@@ -9,7 +9,7 @@ The `paginator-surrealdb` crate provides pagination support for SurrealDB.
 
 ```toml
 [dependencies]
-paginator-surrealdb = { version = "0.3.0", features = ["protocol-ws", "kv-mem"] }
+paginator-surrealdb = { version = "0.3.1", features = ["protocol-ws", "kv-mem"] }
 surrealdb = { version = "2.1", features = ["protocol-ws", "kv-mem"] }
 ```
 

@@ -9,7 +9,7 @@ The `paginator-actix` crate provides extractors, responders, and optional middle
 
 ```toml
 [dependencies]
-paginator-actix = "0.3.0"
+paginator-actix = "0.3.1"
 actix-web = "4"
 ```
 
