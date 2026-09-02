@@ -19,7 +19,14 @@ impl UsersData {
 
 impl PaginatorTrait<UsersData> for Vec<UsersData> {
     fn paginate(&self, params: &PaginationParams) -> PaginatorResult<PaginatorResponse<UsersData>> {
-        use paginator_rs::{FilterOperator, FilterValue};
+        use paginator_rs::{FilterOperator, FilterValue, PaginatorError};
+
+        if params.page < 1 {
+            return Err(PaginatorError::InvalidPage(params.page));
+        }
+        if params.per_page < 1 || params.per_page > 100 {
+            return Err(PaginatorError::InvalidPerPage(params.per_page));
+        }
 
         let mut data = self.clone();
 

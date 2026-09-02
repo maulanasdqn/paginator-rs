@@ -100,10 +100,21 @@ async fn get_users(
 }
 ```
 
-SeaORM, SurrealDB, Rocket, and Actix-web work the same way; see [`paginator-examples`](paginator-examples) for full examples of each integration:
+SeaORM, SurrealDB, Rocket, and Actix-web work the same way; [`paginator-examples`](paginator-examples) has a runnable example for every feature and integration:
 
 ```bash
-cargo run --package paginator-examples --bin example
+cargo run -p paginator-examples --bin basic           # params, sorting, response meta
+cargo run -p paginator-examples --bin builders        # every builder API
+cargo run -p paginator-examples --bin filters         # all 14 filter operators
+cargo run -p paginator-examples --bin search          # all search modes
+cargo run -p paginator-examples --bin cursors         # cursor pagination end to end
+cargo run -p paginator-examples --bin errors          # error handling
+cargo run -p paginator-examples --bin sqlx_sqlite     # SQLx (in-memory SQLite)
+cargo run -p paginator-examples --bin sea_orm_sqlite  # SeaORM 2.0 (in-memory SQLite)
+cargo run -p paginator-examples --bin surrealdb_mem   # SurrealDB (in-memory engine)
+cargo run -p paginator-examples --bin axum_server     # Axum HTTP server
+cargo run -p paginator-examples --bin actix_server    # Actix-web HTTP server
+cargo run -p paginator-examples --bin rocket_server   # Rocket HTTP server
 ```
 
 ## Response format

@@ -2,6 +2,7 @@
 name = "paginator-examples"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [[bin]]
 name = "example"
@@ -12,3 +13,21 @@ paginator-rs.workspace = true
 paginator-utils.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+
+# Database integrations (all runnable in-memory, no external services needed)
+paginator-sqlx = { path = "../paginator-sqlx", features = ["sqlite", "runtime-tokio"] }
+sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runtime-tokio", "macros"] }
+paginator-sea-orm = { path = "../paginator-sea-orm", features = ["sqlx-sqlite", "runtime-tokio"] }
+sea-orm = { version = "2.0", features = ["sqlx-sqlite", "runtime-tokio"] }
+paginator-surrealdb = { path = "../paginator-surrealdb", features = ["kv-mem"] }
+surrealdb = { version = "2.1", default-features = false, features = ["kv-mem"] }
+
+# Web framework integrations
+paginator-axum = { path = "../paginator-axum" }
+axum = "0.8"
+paginator-actix = { path = "../paginator-actix" }
+actix-web = "4.9"
+paginator-rocket = { path = "../paginator-rocket" }
+rocket = { version = "0.5", features = ["json"] }
+
+tokio = { version = "1", features = ["full"] }
