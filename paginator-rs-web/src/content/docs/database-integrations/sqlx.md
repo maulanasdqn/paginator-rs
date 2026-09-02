@@ -10,14 +10,14 @@ The `paginator-sqlx` crate provides pagination support for SQLx with PostgreSQL,
 ```toml
 [dependencies]
 # PostgreSQL
-paginator-sqlx = { version = "0.3.1", features = ["postgres", "runtime-tokio"] }
+paginator-sqlx = { version = "0.3.2", features = ["postgres", "runtime-tokio"] }
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio"] }
 
 # MySQL
-paginator-sqlx = { version = "0.3.1", features = ["mysql", "runtime-tokio"] }
+paginator-sqlx = { version = "0.3.2", features = ["mysql", "runtime-tokio"] }
 
 # SQLite
-paginator-sqlx = { version = "0.3.1", features = ["sqlite", "runtime-tokio"] }
+paginator-sqlx = { version = "0.3.2", features = ["sqlite", "runtime-tokio"] }
 ```
 
 ## Basic Usage

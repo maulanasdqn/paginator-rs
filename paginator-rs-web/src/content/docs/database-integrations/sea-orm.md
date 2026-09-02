@@ -9,7 +9,7 @@ The `paginator-sea-orm` crate provides type-safe pagination for SeaORM entities.
 
 ```toml
 [dependencies]
-paginator-sea-orm = { version = "0.3.1", features = ["sqlx-postgres", "runtime-tokio"] }
+paginator-sea-orm = { version = "0.3.2", features = ["sqlx-postgres", "runtime-tokio"] }
 sea-orm = { version = "2.0", features = ["sqlx-postgres", "runtime-tokio"] }
 ```
 
