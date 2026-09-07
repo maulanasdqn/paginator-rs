@@ -95,18 +95,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         result.data.iter().map(|u| &u.name).collect::<Vec<_>>()
     );
 
-    println!("\n=== Cursor pagination without COUNT(*) ===");
+    println!("\n=== Cursor pagination ===");
+    let mut next = Some(
+        PaginatorBuilder::new()
+            .cursor_after("id", CursorValue::Int(0))
+            .build()
+            .cursor
+            .unwrap()
+            .encode()?,
+    );
+    while let Some(cursor) = next {
+        let params = PaginatorBuilder::new()
+            .per_page(2)
+            .cursor_from_encoded(&cursor)?
+            .disable_total_count()
+            .build();
+        let page = user::Entity::find().paginate_with(&db, &params).await?;
+        println!(
+            "{:?} has_next={} prev_cursor={}",
+            page.data.iter().map(|u| u.id).collect::<Vec<_>>(),
+            page.meta.has_next,
+            page.meta.prev_cursor.as_deref().unwrap_or("-")
+        );
+        next = page.meta.next_cursor;
+    }
+
+    println!("\n=== Before a cursor, and a relative page ===");
     let params = PaginatorBuilder::new()
         .per_page(2)
-        .cursor_after("id", CursorValue::Int(2))
-        .disable_total_count()
+        .cursor_before("id", CursorValue::Int(5))
         .build();
     let result = user::Entity::find().paginate_with(&db, &params).await?;
     println!(
-        "after id=2: {:?} has_next={} total={:?}",
-        result.data.iter().map(|u| u.id).collect::<Vec<_>>(),
-        result.meta.has_next,
-        result.meta.total
+        "before id=5: {:?}",
+        result.data.iter().map(|u| u.id).collect::<Vec<_>>()
+    );
+    let params = PaginatorBuilder::new()
+        .per_page(2)
+        .page(2)
+        .cursor_after("id", CursorValue::Int(0))
+        .build();
+    let result = user::Entity::find().paginate_with(&db, &params).await?;
+    println!(
+        "page 2 after id=0: {:?}",
+        result.data.iter().map(|u| u.id).collect::<Vec<_>>()
     );
 
     println!("\n=== Free function form ===");

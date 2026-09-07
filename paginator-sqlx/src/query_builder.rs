@@ -1,4 +1,6 @@
-use paginator_rs::{Filter, FilterOperator, FilterValue, PaginationParams};
+use paginator_rs::{
+    CursorValue, Filter, FilterOperator, FilterValue, KeysetPlan, PaginationParams, SortDirection,
+};
 use sqlx::query_builder::QueryBuilder;
 use sqlx::Database;
 
@@ -6,6 +8,12 @@ pub trait QueryBuilderExt<'args, DB: Database> {
     fn push_filter(&mut self, filter: &Filter) -> &mut Self;
     fn push_filters(&mut self, params: &PaginationParams) -> &mut Self;
     fn push_search(&mut self, params: &PaginationParams) -> &mut Self;
+    /// Push the keyset predicate `field <op> $value` for a cursor request. The
+    /// caller is responsible for the preceding `WHERE`/`AND`. `uuid_cast` is
+    /// appended after a bound [`CursorValue::Uuid`] (PostgreSQL needs `::uuid`).
+    fn push_keyset(&mut self, plan: &KeysetPlan<'_>, uuid_cast: Option<&str>) -> &mut Self;
+    /// Push ` ORDER BY field ASC|DESC`. The field name must already be validated.
+    fn push_order_by(&mut self, field: &str, direction: SortDirection) -> &mut Self;
 }
 
 impl<'args, DB: Database> QueryBuilderExt<'args, DB> for QueryBuilder<'args, DB>
@@ -167,6 +175,41 @@ where
                 self.push(")");
             }
         }
+        self
+    }
+
+    fn push_keyset(&mut self, plan: &KeysetPlan<'_>, uuid_cast: Option<&str>) -> &mut Self {
+        self.push(plan.field());
+        self.push(" ");
+        self.push(plan.operator());
+        self.push(" ");
+        match plan.value() {
+            CursorValue::String(s) => {
+                self.push_bind(s.clone());
+            }
+            CursorValue::Int(i) => {
+                self.push_bind(*i);
+            }
+            CursorValue::Float(f) => {
+                self.push_bind(*f);
+            }
+            CursorValue::Uuid(u) => {
+                self.push_bind(u.clone());
+                if let Some(cast) = uuid_cast {
+                    self.push(cast);
+                }
+            }
+        }
+        self
+    }
+
+    fn push_order_by(&mut self, field: &str, direction: SortDirection) -> &mut Self {
+        self.push(" ORDER BY ");
+        self.push(field);
+        self.push(match direction {
+            SortDirection::Asc => " ASC",
+            SortDirection::Desc => " DESC",
+        });
         self
     }
 }

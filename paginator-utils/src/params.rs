@@ -3,11 +3,20 @@ use crate::filter::Filter;
 use crate::search::SearchParams;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum SortDirection {
     Asc,
     Desc,
+}
+
+impl SortDirection {
+    pub fn reversed(self) -> Self {
+        match self {
+            SortDirection::Asc => SortDirection::Desc,
+            SortDirection::Desc => SortDirection::Asc,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -1,9 +1,9 @@
-use crate::common::{validate_field_name, PaginateQuery, PaginatedQuery};
-use crate::query_builder::QueryBuilderExt;
-use paginator_rs::{
-    CursorDirection, CursorValue, PaginationParams, PaginatorError, PaginatorResponse,
-    PaginatorResponseMeta,
+use crate::common::{
+    clean_base_query, count_sql, data_sql, finish, limit_offset, order_for, PaginateQuery,
+    PaginatedQuery,
 };
+use crate::query_builder::QueryBuilderExt;
+use paginator_rs::{PaginationParams, PaginatorError, PaginatorResponse};
 use serde::Serialize;
 use sqlx::mysql::{MySqlArguments, MySqlRow};
 use sqlx::query_builder::QueryBuilder;
@@ -18,10 +18,17 @@ where
     }
 }
 
-fn is_cte_query(query: &str) -> bool {
-    query.trim().to_uppercase().starts_with("WITH")
-}
-
+/// Paginate `base_query`, applying the filters, search, sort, and cursor in `params`.
+///
+/// Filters, search, and the keyset predicate are appended by wrapping the base
+/// query in a derived table, so the base query may carry its own `WHERE` clause
+/// or start with a common table expression. Without them (and without a cursor)
+/// the base query is used as is and `ORDER BY`/`LIMIT` are appended directly.
+///
+/// With a cursor the rows are ordered by the cursor field, `per_page + 1` rows
+/// are fetched to detect the next page, and `next_cursor`/`prev_cursor` are
+/// derived from the boundary rows. `page` then acts as an offset in pages
+/// relative to the cursor.
 pub async fn paginate_query<'e, E, T>(
     executor: E,
     base_query: &str,
@@ -31,183 +38,53 @@ where
     E: Executor<'e, Database = MySql> + Clone,
     T: for<'r> FromRow<'r, MySqlRow> + Send + Unpin + Serialize,
 {
+    let plan = params.keyset_plan().map_err(PaginatorError::Custom)?;
     let has_filters_or_search = !params.filters.is_empty() || params.search.is_some();
-
-    let count_query_str = if is_cte_query(base_query) {
-        if has_filters_or_search {
-            format!(
-                "{}, _paginator_filtered AS (SELECT * FROM ({}) AS _base WHERE 1=1",
-                base_query.trim_end_matches(';'),
-                base_query
-            )
-        } else {
-            format!("SELECT COUNT(*) FROM ({}) as count_subquery", base_query)
-        }
-    } else {
-        if has_filters_or_search {
-            format!("SELECT COUNT(*) FROM ({}) AS _base WHERE 1=1", base_query)
-        } else {
-            format!("SELECT COUNT(*) FROM ({}) as count_subquery", base_query)
-        }
-    };
+    let base_query = clean_base_query(base_query);
 
     let total = if params.disable_total_count {
         None
     } else {
-        let count = if has_filters_or_search {
-            let mut count_builder: QueryBuilder<MySql> = QueryBuilder::new(&count_query_str);
-            count_builder.push_filters(&params);
-            count_builder.push_search(&params);
-
-            if is_cte_query(base_query) {
-                count_builder.push(") SELECT COUNT(*) FROM _paginator_filtered");
-            }
-
-            let count_query = count_builder.build_query_as::<(i64,)>();
-            let (total,) = count_query
-                .fetch_one(executor.clone())
-                .await
-                .map_err(|e| PaginatorError::Custom(format!("Count query failed: {}", e)))?;
-            total
-        } else {
-            let (total,): (i64,) = sqlx::query_as(&count_query_str)
-                .fetch_one(executor.clone())
-                .await
-                .map_err(|e| PaginatorError::Custom(format!("Count query failed: {}", e)))?;
-            total
-        };
-        Some(count)
+        let mut count_builder: QueryBuilder<MySql> =
+            QueryBuilder::new(count_sql(base_query, has_filters_or_search));
+        if has_filters_or_search {
+            count_builder.push_filters(params);
+            count_builder.push_search(params);
+        }
+        let (total,): (i64,) = count_builder
+            .build_query_as()
+            .fetch_one(executor.clone())
+            .await
+            .map_err(|e| PaginatorError::Custom(format!("Count query failed: {}", e)))?;
+        Some(total)
     };
 
-    let data_query_str = if is_cte_query(base_query) {
-        if has_filters_or_search {
-            format!(
-                "{}, _paginator_filtered AS (SELECT * FROM ({}) AS _base WHERE 1=1",
-                base_query.trim_end_matches(';'),
-                base_query
-            )
-        } else {
-            base_query.to_string()
-        }
-    } else {
-        if has_filters_or_search {
-            format!("SELECT * FROM ({}) AS _base WHERE 1=1", base_query)
-        } else {
-            base_query.to_string()
-        }
-    };
-
-    let mut data_builder: QueryBuilder<MySql> = QueryBuilder::new(&data_query_str);
-
+    let mut data_builder: QueryBuilder<MySql> = QueryBuilder::new(data_sql(
+        base_query,
+        has_filters_or_search || plan.is_some(),
+    ));
     if has_filters_or_search {
-        data_builder.push_filters(&params);
-        data_builder.push_search(&params);
-
-        if is_cte_query(base_query) {
-            data_builder.push(") SELECT * FROM _paginator_filtered");
-        }
+        data_builder.push_filters(params);
+        data_builder.push_search(params);
     }
-
-    if let Some(ref cursor) = params.cursor {
-        // Validate cursor field name to prevent SQL injection
-        validate_field_name(&cursor.field)?;
-
-        let operator = match cursor.direction {
-            CursorDirection::After => match params.sort_direction.as_ref() {
-                Some(paginator_rs::SortDirection::Desc) => "<",
-                _ => ">",
-            },
-            CursorDirection::Before => match params.sort_direction.as_ref() {
-                Some(paginator_rs::SortDirection::Desc) => ">",
-                _ => "<",
-            },
-        };
-
-        if !has_filters_or_search {
-            data_builder.push(" WHERE ");
-        } else {
-            data_builder.push(" AND ");
-        }
-
-        data_builder.push(&cursor.field);
-        data_builder.push(" ");
-        data_builder.push(operator);
-        data_builder.push(" ");
-
-        match &cursor.value {
-            CursorValue::String(s) => {
-                data_builder.push_bind(s.clone());
-            }
-            CursorValue::Int(i) => {
-                data_builder.push_bind(*i);
-            }
-            CursorValue::Float(f) => {
-                data_builder.push_bind(*f);
-            }
-            CursorValue::Uuid(u) => {
-                // MySQL stores UUIDs as strings
-                data_builder.push_bind(u.clone());
-            }
-        }
+    if let Some(ref plan) = plan {
+        data_builder.push(" AND ");
+        data_builder.push_keyset(plan, None);
     }
-
-    if let Some(ref sort_field) = params.sort_by {
-        // Validate sort field name to prevent SQL injection
-        validate_field_name(sort_field)?;
-
-        data_builder.push(" ORDER BY ");
-        data_builder.push(sort_field);
-        match params.sort_direction.as_ref() {
-            Some(paginator_rs::SortDirection::Desc) => data_builder.push(" DESC"),
-            _ => data_builder.push(" ASC"),
-        };
+    if let Some((field, direction)) = order_for(params, plan.as_ref())? {
+        data_builder.push_order_by(field, direction);
     }
+    let (limit, offset) = limit_offset(params, plan.is_some());
+    data_builder.push(" LIMIT ");
+    data_builder.push_bind(limit);
+    data_builder.push(" OFFSET ");
+    data_builder.push_bind(offset);
 
-    if params.cursor.is_some() {
-        data_builder.push(" LIMIT ");
-        data_builder.push_bind((params.limit() + 1) as i64);
-    } else if params.disable_total_count {
-        // Fetch one extra row to detect if there's a next page
-        data_builder.push(" LIMIT ");
-        data_builder.push_bind((params.limit() + 1) as i64);
-        data_builder.push(" OFFSET ");
-        data_builder.push_bind(params.offset() as i64);
-    } else {
-        data_builder.push(" LIMIT ");
-        data_builder.push_bind(params.limit() as i64);
-        data_builder.push(" OFFSET ");
-        data_builder.push_bind(params.offset() as i64);
-    }
-
-    let data_query = data_builder.build_query_as::<T>();
-    let mut data = data_query
+    let data = data_builder
+        .build_query_as::<T>()
         .fetch_all(executor)
         .await
         .map_err(|e| PaginatorError::Custom(format!("Paginated query failed: {}", e)))?;
 
-    let meta = if params.cursor.is_some() {
-        let has_next = data.len() > params.per_page as usize;
-        if has_next {
-            data.truncate(params.per_page as usize);
-        }
-        PaginatorResponseMeta::new_with_cursors(
-            params.page,
-            params.per_page,
-            total.map(|t| t as u32),
-            has_next,
-            None,
-            None,
-        )
-    } else if let Some(count) = total {
-        PaginatorResponseMeta::new(params.page, params.per_page, count as u32)
-    } else {
-        // disable_total_count is true - we fetched one extra row to detect next page
-        let has_next = data.len() > params.per_page as usize;
-        if has_next {
-            data.truncate(params.per_page as usize);
-        }
-        PaginatorResponseMeta::new_without_total(params.page, params.per_page, has_next)
-    };
-
-    Ok(PaginatorResponse { data, meta })
+    Ok(finish(data, params, plan.as_ref(), total))
 }

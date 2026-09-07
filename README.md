@@ -4,7 +4,7 @@ Modular Rust pagination library with database and web framework integrations.
 
 ## Features
 
-- Page-based, offset/limit, and cursor (keyset) pagination
+- Page-based, offset/limit, cursor (keyset), and relative cursor pagination
 - Builder API with multi-field sorting
 - Filtering with 14 operators (eq, ne, gt, lt, gte, lte, like, ilike, in, between, is_null, is_not_null) and multi-field search
 - Optional `COUNT(*)` skipping via `.disable_total_count()`
@@ -58,18 +58,53 @@ let params = PaginatorBuilder::new()
 
 ### Cursor pagination
 
+Cursor (keyset) pagination orders rows by the cursor field and selects the rows on the far side of the cursor, so pages stay stable while rows are inserted or deleted. Every database integration supports it.
+
 ```rust
 use paginator_rs::{CursorValue, PaginatorBuilder};
 
+// Rows after id 42, newest first: WHERE id < 42 ORDER BY id DESC LIMIT 21
 let params = PaginatorBuilder::new()
     .per_page(20)
     .sort_by("id")
+    .sort_desc()
     .cursor_after("id", CursorValue::Int(42))
     .disable_total_count() // skip COUNT(*)
     .build();
 ```
 
-Cursors are Base64-encoded and validated on decode; use `.cursor_from_encoded(cursor)` to resume from an API response.
+The response carries `next_cursor` and `prev_cursor`, derived from the last and first row of the page. Feed one back with `.cursor_from_encoded(cursor)`, or the `cursor` query parameter in the web integrations, to move on. `cursor_before` fetches the page that ends just before a row, so both directions work. Cursors are URL-safe Base64 and validated on decode.
+
+To hand out the first cursor from an ordinary offset page, call `.with_cursors("id")` on the response:
+
+```rust
+let page = paginate_query::<_, User>(pool, "SELECT * FROM users", &params)
+    .await?
+    .with_cursors("id");
+// page.meta.next_cursor is set whenever there is a next page
+```
+
+Rules and edge cases:
+
+- `sort_by`, when set, must equal the cursor field. `sort_direction` applies as usual and must be sent along with the cursor.
+- The cursor field should be unique, such as a primary key. Keyset pagination on a non-unique column skips rows that share the boundary value.
+- Cursors are only emitted when the cursor field is present in the serialized row type, so select it.
+- `total` and `total_pages` still describe the whole result set, not the rows past the cursor.
+
+### Relative cursor pagination
+
+`page` combines with a cursor as an offset in pages relative to it, so a client can jump several pages ahead of (or behind) a known cursor without walking through them:
+
+```rust
+// The third page after id 42: WHERE id > 42 ORDER BY id LIMIT 21 OFFSET 40
+let params = PaginatorBuilder::new()
+    .per_page(20)
+    .page(3)
+    .cursor_after("id", CursorValue::Int(42))
+    .build();
+```
+
+The response's `page` echoes the relative page number, and its cursors point at that page's boundary rows.
 
 ### SQLx
 
@@ -171,7 +206,7 @@ println!("{}", paginator_zod::typescript::response_module_ts());
 }
 ```
 
-Cursor pagination adds `next_cursor`/`prev_cursor`; with `disable_total_count()`, `total` and `total_pages` are omitted. Web framework integrations also set `X-Total-Count`, `X-Total-Pages`, `X-Current-Page`, and `X-Per-Page` headers.
+Cursor pagination adds `next_cursor`/`prev_cursor`, each present only when that side has more rows; with `disable_total_count()`, `total` and `total_pages` are omitted. Web framework integrations also set `X-Total-Count`, `X-Total-Pages`, `X-Current-Page`, and `X-Per-Page` headers.
 
 ## Query parameters
 
@@ -184,6 +219,7 @@ GET /api/users?page=1&per_page=10&filter=status:eq:active&filter=age:gt:18&searc
 - `sort_by` / `sort_direction` — field and `asc`/`desc`
 - `filter` — `field:operator:value`, repeatable (AND logic)
 - `search` / `search_fields` — query text and comma-separated fields
+- `cursor` — a `next_cursor`/`prev_cursor` from a previous response; invalid cursors are rejected with 400
 
 ## License
 

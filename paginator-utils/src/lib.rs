@@ -4,7 +4,7 @@ mod params;
 mod response;
 mod search;
 
-pub use cursor::{Cursor, CursorDirection, CursorValue};
+pub use cursor::{Cursor, CursorDirection, CursorValue, KeysetPlan};
 pub use filter::{Filter, FilterOperator, FilterValue};
 pub use params::{PaginationParams, SortDirection};
 pub use response::{PaginatorResponse, PaginatorResponseMeta};

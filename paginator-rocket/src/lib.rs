@@ -1,6 +1,8 @@
-use paginator_rs::{PaginationParams, PaginatorResponse, PaginatorResponseMeta, SortDirection};
+use paginator_rs::{
+    Cursor, PaginationParams, PaginatorResponse, PaginatorResponseMeta, SortDirection,
+};
 use rocket::{
-    http::Header,
+    http::{Header, Status},
     request::{self, FromRequest, Request},
     response::{self, Responder},
     serde::json::Json,
@@ -23,6 +25,7 @@ impl<'r> FromRequest<'r> for Pagination {
         let mut per_page = 20u32;
         let mut sort_by: Option<String> = None;
         let mut sort_direction: Option<SortDirection> = None;
+        let mut cursor: Option<Cursor> = None;
 
         if let Some(query) = query {
             for (key, value) in query.segments() {
@@ -47,6 +50,12 @@ impl<'r> FromRequest<'r> for Pagination {
                             _ => None,
                         };
                     }
+                    "cursor" => match Cursor::decode(value) {
+                        Ok(decoded) => cursor = Some(decoded),
+                        Err(_) => {
+                            return request::Outcome::Error((Status::BadRequest, "invalid cursor"))
+                        }
+                    },
                     _ => {}
                 }
             }
@@ -61,7 +70,7 @@ impl<'r> FromRequest<'r> for Pagination {
                 filters: Vec::new(),
                 search: None,
                 disable_total_count: false,
-                cursor: None,
+                cursor,
             },
         })
     }
@@ -126,4 +135,53 @@ where
     T: Serialize,
 {
     PaginatedJson::new(data, params, total)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use paginator_rs::{CursorDirection, CursorValue};
+    use rocket::local::blocking::Client;
+    use rocket::{get, routes};
+
+    #[get("/users")]
+    fn users(pagination: Pagination) -> String {
+        serde_json::to_string(&pagination.params).unwrap()
+    }
+
+    fn client() -> Client {
+        Client::tracked(rocket::build().mount("/", routes![users])).unwrap()
+    }
+
+    #[test]
+    fn parses_cursor_param() {
+        let cursor = Cursor::new("id".into(), CursorValue::Int(42), CursorDirection::After);
+        let encoded = cursor.encode().unwrap();
+        let client = client();
+        let response = client
+            .get(format!("/users?cursor={encoded}&per_page=5"))
+            .dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        let params: PaginationParams =
+            serde_json::from_str(&response.into_string().unwrap()).unwrap();
+        assert_eq!(params.cursor, Some(cursor));
+        assert_eq!(params.per_page, 5);
+    }
+
+    #[test]
+    fn rejects_invalid_cursor() {
+        let client = client();
+        let response = client.get("/users?cursor=not-a-cursor").dispatch();
+        assert_eq!(response.status(), Status::BadRequest);
+    }
+
+    #[test]
+    fn no_cursor_by_default() {
+        let client = client();
+        let response = client.get("/users?page=2").dispatch();
+        let params: PaginationParams =
+            serde_json::from_str(&response.into_string().unwrap()).unwrap();
+        assert!(params.cursor.is_none());
+        assert_eq!(params.page, 2);
+    }
 }

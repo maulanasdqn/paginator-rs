@@ -3,7 +3,7 @@ use axum::{
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
-use paginator_rs::{Filter, PaginationParams, SearchParams, SortDirection};
+use paginator_rs::{Cursor, Filter, PaginationParams, SearchParams, SortDirection};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
@@ -22,6 +22,8 @@ pub struct PaginationQueryParams {
     pub filter: Vec<String>,
     pub search: Option<String>,
     pub search_fields: Option<String>,
+    /// An encoded cursor from a previous response's `next_cursor`/`prev_cursor`.
+    pub cursor: Option<String>,
 }
 
 fn default_page() -> u32 {
@@ -50,6 +52,7 @@ where
         let mut filters: Vec<Filter> = Vec::new();
         let mut search_query: Option<String> = None;
         let mut search_fields: Option<String> = None;
+        let mut cursor: Option<Cursor> = None;
 
         for (key, value) in form_urlencoded::parse(query_str.as_bytes()) {
             match key.as_ref() {
@@ -84,6 +87,14 @@ where
                 }
                 "search" => search_query = Some(value.into_owned()),
                 "search_fields" => search_fields = Some(value.into_owned()),
+                "cursor" => {
+                    cursor = Some(Cursor::decode(&value).map_err(|e| {
+                        (
+                            StatusCode::BAD_REQUEST,
+                            format!("Invalid query params: cursor: {}", e),
+                        )
+                    })?)
+                }
                 _ => {}
             }
         }
@@ -113,7 +124,55 @@ where
             filters,
             search,
             disable_total_count: false,
-            cursor: None,
+            cursor,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::Request;
+    use paginator_rs::{CursorDirection, CursorValue};
+
+    async fn extract(query: &str) -> Result<PaginationParams, (StatusCode, String)> {
+        let request = Request::builder()
+            .uri(format!("/users?{query}"))
+            .body(())
+            .unwrap();
+        let (mut parts, _) = request.into_parts();
+        PaginationQuery::from_request_parts(&mut parts, &())
+            .await
+            .map(|q| q.0)
+    }
+
+    #[tokio::test]
+    async fn parses_cursor_param() {
+        let cursor = Cursor::new("id".into(), CursorValue::Int(42), CursorDirection::After);
+        let encoded = cursor.encode().unwrap();
+        let params = extract(&format!(
+            "cursor={encoded}&per_page=5&sort_by=id&sort_direction=desc"
+        ))
+        .await
+        .unwrap();
+        assert_eq!(params.cursor, Some(cursor));
+        assert_eq!(params.per_page, 5);
+        assert_eq!(params.sort_by.as_deref(), Some("id"));
+        assert_eq!(params.sort_direction, Some(SortDirection::Desc));
+    }
+
+    #[tokio::test]
+    async fn rejects_invalid_cursor() {
+        let (status, message) = extract("cursor=not-a-cursor").await.unwrap_err();
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert!(message.contains("cursor"), "{message}");
+    }
+
+    #[tokio::test]
+    async fn no_cursor_by_default() {
+        let params = extract("page=2&filter=age:gt:18").await.unwrap();
+        assert!(params.cursor.is_none());
+        assert_eq!(params.page, 2);
+        assert_eq!(params.filters.len(), 1);
     }
 }

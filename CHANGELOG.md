@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Cursor pagination now works end to end in every database integration (SQLx
+  PostgreSQL/MySQL/SQLite, SeaORM, SurrealDB):
+  - `next_cursor` and `prev_cursor` are emitted, derived from the last and first
+    row of the page. They were always `None`.
+  - `cursor_before` returns the `per_page` rows immediately before the cursor. It
+    returned the first rows of the table instead.
+  - Rows are always ordered by the cursor field, even without `sort_by`. A
+    `sort_by` naming a different field is rejected instead of running an unordered
+    keyset query.
+  - `has_prev` is reported for pages behind a cursor.
+  - `CursorValue::Uuid` survives an encode/decode round trip (it is serialized as
+    `{"uuid": "..."}`). It used to decode as `String` and lose the PostgreSQL
+    `::uuid` cast.
+- `paginator-sqlx`: a cursor no longer breaks base queries that already have a
+  `WHERE` clause, and base queries starting with `WITH` work with filters and
+  search. The previous CTE rewrite produced a SQL syntax error.
+- `paginator-sea-orm`: `total` counts the whole result set rather than only the
+  rows past the cursor, matching the other integrations. `has_next` is detected
+  with `disable_total_count()`; it was always `false`.
+- `paginator-surrealdb`: `total` was always 1 because the count query lacked
+  `GROUP ALL`. `has_next` is detected with `disable_total_count()`.
+
+### Added
+
+- Relative cursor pagination: `page` combined with a cursor is an offset in pages
+  relative to the cursor, so `.page(3).cursor_after("id", ...)` returns the third
+  page after the cursor. `page` used to be ignored with a cursor.
+- `PaginatorResponse::with_cursors(field)` attaches `next_cursor`/`prev_cursor`
+  to an offset page so clients can switch to keyset pagination from page 1.
+- `Cursor::from_row`, `Cursor::at_row`, `Cursor::value_from_row`, and
+  `CursorValue::from_json` build cursors from serialized rows.
+- `PaginationParams::keyset_plan` and `KeysetPlan` expose the resolved ordering
+  and comparison operator for custom integrations, and
+  `PaginatorResponseMeta::from_cursor_page` finalizes a keyset page.
+- `SortDirection::reversed`. `SortDirection` and `CursorDirection` are `Copy`.
+- Web integrations accept a `cursor` query parameter: `paginator-axum`
+  (`PaginationQuery`, 400 on an invalid cursor), `paginator-rocket`
+  (`Pagination`, 400 on an invalid cursor), and `paginator-actix`
+  (`PaginationQuery.cursor`, plus `try_into_params` to reject invalid cursors).
+  `paginator-axum`'s `create_link_header` emits cursor-based `prev`/`next` links.
+
+### Changed
+
+- Cursors are encoded with URL-safe, unpadded Base64 so they can be placed in a
+  query string as is. Decoding still accepts the previous standard alphabet.
+- `paginator-actix`'s `PaginationQuery` and `paginator-axum`'s
+  `PaginationQueryParams` gained a `cursor` field, which breaks struct literals
+  that construct them by hand.
+
 ## [0.3.2] - 2026-09-02
 
 ### Changed

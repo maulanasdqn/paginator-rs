@@ -2,7 +2,7 @@
 //!
 //! Run with: cargo run -p paginator-examples --bin surrealdb_mem
 
-use paginator_rs::{FilterValue, PaginatorBuilder};
+use paginator_rs::{CursorValue, FilterValue, PaginatorBuilder};
 use paginator_surrealdb::{paginate_query, paginate_table, QueryBuilder};
 use surrealdb::engine::local::Mem;
 use surrealdb::Surreal;
@@ -97,6 +97,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         result.data.len(),
         result.meta.has_next,
         result.meta.total
+    );
+
+    println!("\n=== Cursor pagination on age ===");
+    let params = PaginatorBuilder::new()
+        .per_page(2)
+        .sort_by("age")
+        .cursor_after("age", CursorValue::Int(28))
+        .build();
+    let result = paginate_query::<User, _>(&db, "SELECT * FROM users", &params).await?;
+    println!(
+        "after age=28: {:?} next_cursor={}",
+        result.data.iter().map(|u| u.age).collect::<Vec<_>>(),
+        result.meta.next_cursor.as_deref().unwrap_or("-")
+    );
+    if let Some(next) = result.meta.next_cursor {
+        let params = PaginatorBuilder::new()
+            .per_page(2)
+            .sort_by("age")
+            .cursor_from_encoded(&next)?
+            .build();
+        let result = paginate_query::<User, _>(&db, "SELECT * FROM users", &params).await?;
+        println!(
+            "next page: {:?} has_next={}",
+            result.data.iter().map(|u| u.age).collect::<Vec<_>>(),
+            result.meta.has_next
+        );
+    }
+    let params = PaginatorBuilder::new()
+        .per_page(2)
+        .cursor_before("age", CursorValue::Int(45))
+        .build();
+    let result = paginate_query::<User, _>(&db, "SELECT * FROM users", &params).await?;
+    println!(
+        "before age=45: {:?}",
+        result.data.iter().map(|u| u.age).collect::<Vec<_>>()
     );
 
     Ok(())

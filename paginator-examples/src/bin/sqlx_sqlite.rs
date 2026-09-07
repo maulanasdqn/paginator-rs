@@ -91,19 +91,65 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         result.data.iter().map(|u| &u.name).collect::<Vec<_>>()
     );
 
-    println!("\n=== Cursor pagination without COUNT(*) ===");
+    println!("\n=== Cursor pagination ===");
+    // Serve page 1 with offset pagination and hand out a cursor for page 2.
+    let params = PaginatorBuilder::new().per_page(2).sort_by("id").build();
+    let first = paginate_query::<_, User>(&pool, "SELECT * FROM users", &params)
+        .await?
+        .with_cursors("id");
+    println!(
+        "page 1: {:?} next_cursor={}",
+        first.data.iter().map(|u| u.id).collect::<Vec<_>>(),
+        first.meta.next_cursor.as_deref().unwrap_or("-")
+    );
+
+    // Follow next_cursor to the end, skipping COUNT(*) on every hop.
+    let mut next = first.meta.next_cursor.clone();
+    let mut last_page = None;
+    while let Some(cursor) = next {
+        let params = PaginatorBuilder::new()
+            .per_page(2)
+            .sort_by("id")
+            .cursor_from_encoded(&cursor)?
+            .disable_total_count()
+            .build();
+        let page = paginate_query::<_, User>(&pool, "SELECT * FROM users", &params).await?;
+        println!(
+            "after cursor: {:?} has_next={} has_prev={}",
+            page.data.iter().map(|u| u.id).collect::<Vec<_>>(),
+            page.meta.has_next,
+            page.meta.has_prev
+        );
+        next = page.meta.next_cursor.clone();
+        last_page = Some(page);
+    }
+
+    // Walk one page back from the last page with prev_cursor.
+    if let Some(prev) = last_page.and_then(|p| p.meta.prev_cursor) {
+        let params = PaginatorBuilder::new()
+            .per_page(2)
+            .sort_by("id")
+            .cursor_from_encoded(&prev)?
+            .build();
+        let page = paginate_query::<_, User>(&pool, "SELECT * FROM users", &params).await?;
+        println!(
+            "before cursor: {:?}",
+            page.data.iter().map(|u| u.id).collect::<Vec<_>>()
+        );
+    }
+
+    println!("\n=== Relative cursor pagination ===");
+    // `page` is an offset in pages relative to the cursor: the 2nd page after id 2.
     let params = PaginatorBuilder::new()
         .per_page(2)
-        .sort_by("id")
+        .page(2)
         .cursor_after("id", CursorValue::Int(2))
-        .disable_total_count()
         .build();
     let result = paginate_query::<_, User>(&pool, "SELECT * FROM users", &params).await?;
     println!(
-        "after id=2: {:?} has_next={} total={:?}",
+        "page 2 after id=2: {:?} has_next={}",
         result.data.iter().map(|u| u.id).collect::<Vec<_>>(),
-        result.meta.has_next,
-        result.meta.total
+        result.meta.has_next
     );
 
     println!("\n=== CTE (WITH clause) query ===");

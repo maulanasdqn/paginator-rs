@@ -1,11 +1,11 @@
 use paginator_rs::{
-    CursorDirection, CursorValue, FilterOperator, FilterValue, PaginationParams, PaginatorError,
-    PaginatorResponse, PaginatorResponseMeta,
+    CursorValue, FilterOperator, FilterValue, KeysetPlan, PaginationParams, PaginatorError,
+    PaginatorResponse, PaginatorResponseMeta, SortDirection,
 };
 use sea_orm::{
     sea_query::{Alias, Condition, Expr, ExprTrait, SimpleExpr},
-    ConnectionTrait, EntityTrait, PaginatorTrait as SeaPaginatorTrait, QueryFilter, QuerySelect,
-    Select,
+    ConnectionTrait, EntityTrait, Order, PaginatorTrait as SeaPaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect, Select,
 };
 use serde::Serialize;
 
@@ -37,26 +37,27 @@ fn cursor_value_to_sea_value(value: &CursorValue) -> sea_orm::sea_query::Value {
     }
 }
 
+/// The keyset predicate selecting rows on the far side of the cursor in query order.
+fn keyset_condition(plan: &KeysetPlan<'_>) -> SimpleExpr {
+    let col = Expr::col(Alias::new(plan.field()));
+    let value = cursor_value_to_sea_value(plan.value());
+    match plan.query_sort {
+        SortDirection::Asc => col.gt(value),
+        SortDirection::Desc => col.lt(value),
+    }
+}
+
+fn sea_order(direction: SortDirection) -> Order {
+    match direction {
+        SortDirection::Asc => Order::Asc,
+        SortDirection::Desc => Order::Desc,
+    }
+}
+
+/// Filters and search from `params`. The cursor is applied separately so the
+/// total count reflects the whole result set, not just the rows past the cursor.
 fn build_filter_condition(params: &PaginationParams) -> Condition {
     let mut condition = Condition::all();
-
-    if let Some(ref cursor) = params.cursor {
-        let col = Expr::col(Alias::new(&cursor.field));
-        let cursor_val = cursor_value_to_sea_value(&cursor.value);
-
-        let cursor_expr = match cursor.direction {
-            CursorDirection::After => match params.sort_direction.as_ref() {
-                Some(paginator_rs::SortDirection::Desc) => col.lt(cursor_val),
-                _ => col.gt(cursor_val),
-            },
-            CursorDirection::Before => match params.sort_direction.as_ref() {
-                Some(paginator_rs::SortDirection::Desc) => col.gt(cursor_val),
-                _ => col.lt(cursor_val),
-            },
-        };
-
-        condition = condition.add(cursor_expr);
-    }
 
     for filter in &params.filters {
         let col = Expr::col(Alias::new(&filter.field));
@@ -132,6 +133,15 @@ where
 {
     type Item;
 
+    /// Paginate this select with `params`.
+    ///
+    /// Filters and search are applied to both the count and the data query. With a
+    /// cursor, rows are ordered by the cursor field (`sort_direction`, ascending by
+    /// default), `per_page + 1` rows are fetched to detect the next page, and
+    /// `next_cursor`/`prev_cursor` are derived from the boundary rows. `page` then
+    /// acts as an offset in pages relative to the cursor. Without a cursor,
+    /// `sort_by` is not applied here; use [`paginate_with_sort`] to map it to an
+    /// entity column.
     async fn paginate_with(
         self,
         db: &'db C,
@@ -153,8 +163,8 @@ where
         db: &'db C,
         params: &PaginationParams,
     ) -> Result<PaginatorResponse<Self::Item>, PaginatorError> {
-        let filter_condition = build_filter_condition(params);
-        let mut query = self.filter(filter_condition.clone());
+        let plan = params.keyset_plan().map_err(PaginatorError::Custom)?;
+        let mut query = self.filter(build_filter_condition(params));
 
         let total = if params.disable_total_count {
             None
@@ -164,39 +174,36 @@ where
                 .count(db)
                 .await
                 .map_err(|e| PaginatorError::Custom(format!("Count query failed: {}", e)))?;
-            Some(count)
+            Some(count as u32)
         };
 
-        if params.cursor.is_some() {
-            query = query.limit((params.limit() + 1) as u64);
-        } else {
+        if let Some(ref plan) = plan {
             query = query
-                .offset(params.offset() as u64)
-                .limit(params.limit() as u64);
+                .filter(Condition::all().add(keyset_condition(plan)))
+                .order_by(
+                    Expr::col(Alias::new(plan.field())),
+                    sea_order(plan.query_sort),
+                );
         }
+
+        // One extra row detects the next page when there is no total to derive
+        // it from: in cursor mode and when the count query is disabled.
+        let probe = plan.is_some() || params.disable_total_count;
+        let limit = params.limit() as u64 + u64::from(probe);
+        query = query.offset(params.offset() as u64).limit(limit);
 
         let mut data = query
             .all(db)
             .await
             .map_err(|e| PaginatorError::Custom(format!("Paginated query failed: {}", e)))?;
 
-        let meta = if params.cursor.is_some() {
-            let has_next = data.len() > params.per_page as usize;
-            if has_next {
-                data.truncate(params.per_page as usize);
-            }
-            PaginatorResponseMeta::new_with_cursors(
-                params.page,
-                params.per_page,
-                total.map(|t| t as u32),
-                has_next,
-                None,
-                None,
-            )
+        let meta = if let Some(ref plan) = plan {
+            PaginatorResponseMeta::from_cursor_page(&mut data, params, plan, total)
         } else if let Some(count) = total {
-            PaginatorResponseMeta::new(params.page, params.per_page, count as u32)
+            PaginatorResponseMeta::new(params.page, params.per_page, count)
         } else {
-            let has_next = data.len() as u32 > params.per_page;
+            let has_next = data.len() > params.per_page as usize;
+            data.truncate(params.per_page as usize);
             PaginatorResponseMeta::new_without_total(params.page, params.per_page, has_next)
         };
 
@@ -217,6 +224,9 @@ where
     select.paginate_with(db, params).await
 }
 
+/// Like [`paginate`], mapping `sort_by`/`sort_direction` to an `ORDER BY` through
+/// `sort_fn`. When `params` carries a cursor the ordering is fixed by the cursor
+/// field and `sort_fn` is not called.
 pub async fn paginate_with_sort<C, E, F>(
     select: Select<E>,
     db: &C,
@@ -231,9 +241,11 @@ where
 {
     let mut query = select;
 
-    if let Some(ref field) = params.sort_by {
-        if let Some(ref direction) = params.sort_direction {
-            query = sort_fn(query, field, direction);
+    if params.cursor.is_none() {
+        if let Some(ref field) = params.sort_by {
+            if let Some(ref direction) = params.sort_direction {
+                query = sort_fn(query, field, direction);
+            }
         }
     }
 

@@ -1,5 +1,7 @@
 use actix_web::{body::BoxBody, HttpRequest, HttpResponse, Responder};
-use paginator_rs::{PaginationParams, PaginatorResponse, PaginatorResponseMeta, SortDirection};
+use paginator_rs::{
+    Cursor, PaginationParams, PaginatorResponse, PaginatorResponseMeta, SortDirection,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -10,6 +12,8 @@ pub struct PaginationQuery {
     pub per_page: u32,
     pub sort_by: Option<String>,
     pub sort_direction: Option<String>,
+    /// An encoded cursor from a previous response's `next_cursor`/`prev_cursor`.
+    pub cursor: Option<String>,
 }
 
 fn default_page() -> u32 {
@@ -21,47 +25,50 @@ fn default_per_page() -> u32 {
 }
 
 impl PaginationQuery {
-    pub fn into_params(self) -> PaginationParams {
-        let sort_direction = self
-            .sort_direction
+    fn sort_direction(&self) -> Option<SortDirection> {
+        self.sort_direction
+            .as_ref()
             .and_then(|s| match s.to_lowercase().as_str() {
                 "asc" => Some(SortDirection::Asc),
                 "desc" => Some(SortDirection::Desc),
                 _ => None,
-            });
-
-        PaginationParams {
-            page: self.page.max(1),
-            per_page: self.per_page.clamp(1, 100),
-            sort_by: self.sort_by,
-            sort_direction,
-            filters: Vec::new(),
-            search: None,
-            disable_total_count: false,
-            cursor: None,
-        }
+            })
     }
 
-    pub fn as_params(&self) -> PaginationParams {
-        let sort_direction =
-            self.sort_direction
-                .as_ref()
-                .and_then(|s| match s.to_lowercase().as_str() {
-                    "asc" => Some(SortDirection::Asc),
-                    "desc" => Some(SortDirection::Desc),
-                    _ => None,
-                });
-
+    fn build(&self, cursor: Option<Cursor>) -> PaginationParams {
         PaginationParams {
             page: self.page.max(1),
             per_page: self.per_page.clamp(1, 100),
             sort_by: self.sort_by.clone(),
-            sort_direction,
+            sort_direction: self.sort_direction(),
             filters: Vec::new(),
             search: None,
             disable_total_count: false,
-            cursor: None,
+            cursor,
         }
+    }
+
+    /// Decode the `cursor` query parameter, if present.
+    pub fn decode_cursor(&self) -> Result<Option<Cursor>, String> {
+        self.cursor.as_deref().map(Cursor::decode).transpose()
+    }
+
+    /// Convert into [`PaginationParams`]. A cursor that fails to decode is
+    /// dropped; use [`try_into_params`](Self::try_into_params) to reject it.
+    pub fn into_params(self) -> PaginationParams {
+        self.as_params()
+    }
+
+    /// Like [`into_params`](Self::into_params) without consuming the query.
+    pub fn as_params(&self) -> PaginationParams {
+        self.build(self.decode_cursor().ok().flatten())
+    }
+
+    /// Convert into [`PaginationParams`], failing when the `cursor` parameter
+    /// cannot be decoded so the handler can answer with a 400.
+    pub fn try_into_params(self) -> Result<PaginationParams, String> {
+        let cursor = self.decode_cursor()?;
+        Ok(self.build(cursor))
     }
 }
 
@@ -172,5 +179,44 @@ pub mod middleware {
                 Ok(res)
             })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::web::Query;
+    use paginator_rs::{CursorDirection, CursorValue};
+
+    fn parse(query: &str) -> PaginationQuery {
+        Query::<PaginationQuery>::from_query(query)
+            .unwrap()
+            .into_inner()
+    }
+
+    #[test]
+    fn parses_cursor_param() {
+        let cursor = Cursor::new("id".into(), CursorValue::Int(42), CursorDirection::After);
+        let encoded = cursor.encode().unwrap();
+        let params = parse(&format!("cursor={encoded}&per_page=5&sort_direction=desc"))
+            .try_into_params()
+            .unwrap();
+        assert_eq!(params.cursor, Some(cursor));
+        assert_eq!(params.per_page, 5);
+        assert_eq!(params.sort_direction, Some(SortDirection::Desc));
+    }
+
+    #[test]
+    fn invalid_cursor_is_rejected_or_dropped() {
+        let query = parse("cursor=not-a-cursor&page=3");
+        assert!(query.clone().try_into_params().is_err());
+        let params = query.into_params();
+        assert!(params.cursor.is_none());
+        assert_eq!(params.page, 3);
+    }
+
+    #[test]
+    fn no_cursor_by_default() {
+        assert!(parse("page=2").as_params().cursor.is_none());
     }
 }
