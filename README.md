@@ -29,13 +29,13 @@ Modular Rust pagination library with database and web framework integrations.
 
 ```toml
 [dependencies]
-paginator-rs = "0.3.2"
+paginator-rs = "0.4.0"
 ```
 
 Add the integration crate you need, for example:
 
 ```toml
-paginator-sqlx = { version = "0.3.2", features = ["postgres", "runtime-tokio"] }
+paginator-sqlx = { version = "0.4.0", features = ["postgres", "runtime-tokio"] }
 ```
 
 ## Usage
